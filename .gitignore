@@ -4,3 +4,8 @@ db.sqlite3
 __pycache__/
 *.py[cod]
 *.log
+node_modules/
+build/
+webpack-stats.json
+package-lock.json
+frontend/bundles/*
