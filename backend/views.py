@@ -3,7 +3,7 @@ from django.shortcuts import render
 
 def index(request):
     """
-    test1
+    serving up the main app page which loads the Vue.js from WebPack
     """
     context = {
         'data': 'value',
