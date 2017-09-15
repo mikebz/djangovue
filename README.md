@@ -38,3 +38,8 @@ python3 manage.py runserver
 At this point in time you should be able to navigate to your localhost:8000 and see a template rendered.  You can also run
 the `npm run watch` in a separate window if you want to rebuild your frontend.  Note that for simplicity there is no hot
 reloading so you would need to refresh the page when you save your front end files.
+
+## Sources
+This only worked because people before me created some wonderful examples.
+- https://github.com/djstein/vue-django-webpack
+- https://github.com/ezhome/django-webpack-loader
