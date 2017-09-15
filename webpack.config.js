@@ -5,25 +5,47 @@ var BundleTracker = require('webpack-bundle-tracker');
 
 module.exports = {
   context: __dirname,
-  entry: './frontend/js/index',
+
+  entry: [
+    // 'webpack-dev-server/client?http://localhost:3000',
+    // 'webpack/hot/only-dev-server',
+    './frontend/js/main'
+  ],
+  
   output: {
       path: path.resolve('./frontend/bundles/'),
       filename: "[name]-[hash].js",
+      // publicPath: 'http://localhost:3000/frontend/bundles/',
   },
 
   plugins: [
+    // new webpack.HotModuleReplacementPlugin(),
+    new webpack.NoEmitOnErrorsPlugin(), 
     new BundleTracker({filename: './webpack-stats.json'}),
   ],
 
   module: {
     loaders: [
-      // we pass the output from babel loader to react-hot loader
-      { test: /\.jsx?$/, exclude: /node_modules/, loaders: ['babel'], },
+      {
+        test: /\.vue$/,
+        loader: 'vue-loader',
+        options: {
+          loaders: {
+          }
+        }
+      },
+      {
+        test: /\.js$/,
+        loader: 'babel-loader',
+        exclude: /node_modules/
+      },
+      {
+        test: /\.(png|jpg|gif|svg)$/,
+        loader: 'file-loader',
+        options: {
+          name: '[name].[ext]?[hash]'
+        }
+      }
     ],
-  },
-
-  resolve: {
-    modulesDirectories: ['node_modules', 'bower_components'],
-    extensions: ['', '.js', '.jsx']
   },
 }
