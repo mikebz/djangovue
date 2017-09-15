@@ -7,19 +7,15 @@ module.exports = {
   context: __dirname,
 
   entry: [
-    // 'webpack-dev-server/client?http://localhost:3000',
-    // 'webpack/hot/only-dev-server',
     './frontend/js/main'
   ],
   
   output: {
       path: path.resolve('./frontend/bundles/'),
       filename: "[name]-[hash].js",
-      // publicPath: 'http://localhost:3000/frontend/bundles/',
   },
 
   plugins: [
-    // new webpack.HotModuleReplacementPlugin(),
     new webpack.NoEmitOnErrorsPlugin(), 
     new BundleTracker({filename: './webpack-stats.json'}),
   ],
@@ -43,7 +39,8 @@ module.exports = {
         test: /\.(png|jpg|gif|svg)$/,
         loader: 'file-loader',
         options: {
-          name: '[name].[ext]?[hash]'
+          name: '[name].[ext]?[hash]',
+          publicPath: 'static/bundles/'
         }
       }
     ],
