@@ -1,5 +1,6 @@
 # djangovue
 ![Vue.js Logo](https://github.com/mikebz/djangovue/raw/master/frontend/img/logo.png "Vue.js")
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fmikebz%2Fdjangovue.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fmikebz%2Fdjangovue?ref=badge_shield)
 
 This is a starter project for Django with Vue.js.  I fell in love with the readability you get in Vue.js and 
 decided to create a project where all components are laid out in the most readable way.
@@ -43,3 +44,7 @@ reloading so you would need to refresh the page when you save your front end fil
 This only worked because people before me created some wonderful examples.
 - https://github.com/djstein/vue-django-webpack
 - https://github.com/ezhome/django-webpack-loader
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fmikebz%2Fdjangovue.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fmikebz%2Fdjangovue?ref=badge_large)
