@@ -80,13 +80,13 @@ uv sync                               # Install dependencies
 
 ## 📦 What's New
 
-- **Python 3.10+** required (upgraded from 3.9)
+- **Python 3.11+** required (upgraded from 3.10+, using Python 3.13.5)
 - **Django 5.1** (upgraded from 4.2)
 - **UV package manager** for faster dependency management
 - **Modern linting** with Ruff (replaces pylint)
 - **Code formatting** with Black
 - **Improved URL patterns** (modern Django path() syntax)
-- **Development helper script** for common tasks
+- **Makefile** for development automation
 
 ## 📝 Migration Notes
 
@@ -95,6 +95,7 @@ If you're upgrading from the old setup:
 - Use `uv sync` instead of `pip install -r requirements.txt`
 - Virtual environment is automatically managed by UV in `.venv/`
 - All dependencies are pinned in `uv.lock` for reproducible builds
+- **Python 3.11+** is now required (upgraded from 3.10+)
 
 ## Sources
 This only worked because people before me created some wonderful examples.
