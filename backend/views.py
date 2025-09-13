@@ -6,6 +6,6 @@ def index(request):
     serving up the main app page which loads the Vue.js from WebPack
     """
     context = {
-        'data': 'value',
+        "data": "value",
     }
-    return render(request, 'index.html', context)
+    return render(request, "index.html", context)

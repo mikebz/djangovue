@@ -1,11 +1,24 @@
+# Python virtual environments
 venv
+.venv
+
+# UV cache and environment files
+.python-version
+
+# VS Code
 .vscode
+
+# Django
 db.sqlite3
 __pycache__/
 *.py[cod]
 *.log
+
+# Node.js
 node_modules/
 build/
-webpack-stats.json
 package-lock.json
+
+# Webpack
+webpack-stats.json
 frontend/bundles/*
