@@ -152,3 +152,15 @@ qa: lint-fix format test check ## Run all quality checks and fixes
 # Production commands
 prod-build: install frontend-build collectstatic ## Build for production
 	@echo "$(GREEN)Production build complete!$(RESET)"
+
+docker-build: ## Build Docker image
+	@echo "$(BLUE)Building Docker image...$(RESET)"
+	docker build -t djangovue:latest .
+
+docker-run: docker-build ## Build and run Docker container
+	@echo "$(BLUE)Running Docker container...$(RESET)"
+	docker run --rm -p 8000:8000 djangovue:latest
+
+docker-dev: ## Run development environment in Docker
+	@echo "$(BLUE)Starting development environment in Docker...$(RESET)"
+	docker-compose up --build

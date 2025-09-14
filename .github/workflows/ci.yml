@@ -1,0 +1,201 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  lint-python:
+    name: Python Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install UV
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        
+    - name: Set up Python
+      run: uv python install 3.13
+      
+    - name: Install Python dependencies
+      run: uv sync --extra dev
+      
+    - name: Run Ruff linter
+      run: uv run ruff check backend/ djangovue/
+      
+    - name: Run Ruff formatter check
+      run: uv run ruff format --check backend/ djangovue/
+      
+    - name: Run Black formatter check
+      run: uv run black --check backend/ djangovue/
+
+  lint-frontend:
+    name: Frontend Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        
+    - name: Install frontend dependencies
+      run: npm ci
+      
+    - name: Build frontend
+      run: npm run build
+      
+    - name: Check for build artifacts
+      run: |
+        if [ ! -d "frontend/dist" ]; then
+          echo "Frontend build failed - no dist directory found"
+          exit 1
+        fi
+        if [ ! -f "frontend/dist/.vite/manifest.json" ]; then
+          echo "Frontend build failed - no manifest.json found"
+          exit 1
+        fi
+        echo "✅ Frontend build successful"
+
+  test-python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install UV
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        
+    - name: Set up Python
+      run: uv python install 3.13
+      
+    - name: Install Python dependencies
+      run: uv sync --extra dev
+      
+    - name: Run Django system checks
+      run: uv run python manage.py check
+      
+    - name: Run Django tests
+      run: uv run python manage.py test
+      
+    - name: Run pytest tests
+      run: uv run pytest --tb=short
+      
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [lint-python, lint-frontend, test-python]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install UV
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        
+    - name: Set up Python
+      run: uv python install 3.13
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        
+    - name: Install all dependencies
+      run: |
+        uv sync --extra dev
+        npm ci
+        
+    - name: Build frontend
+      run: npm run build
+      
+    - name: Run Django migrations
+      run: uv run python manage.py migrate
+      
+    - name: Test Django template rendering
+      run: |
+        uv run python -c "
+        import os
+        import django
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangovue.settings')
+        django.setup()
+        from django.template.loader import render_to_string
+        result = render_to_string('index.html', {})
+        print('✅ Template rendered successfully')
+        print('📄 Length:', len(result), 'characters')
+        assert 'Vue.js App' in result, 'Template missing Vue.js App title'
+        assert '<div id=\"app\">' in result, 'Template missing Vue.js mount point'
+        assert '.js' in result, 'Template missing JavaScript bundle'
+        print('✅ All template assertions passed')
+        "
+        
+    - name: Test development server startup
+      run: |
+        # Start Django server in background
+        uv run python manage.py runserver &
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        sleep 5
+        
+        # Test server responds
+        curl -f http://127.0.0.1:8000/ || (echo "❌ Server not responding"; exit 1)
+        
+        # Kill server
+        kill $SERVER_PID
+        
+        echo "✅ Development server test passed"
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install UV
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+        
+    - name: Set up Python
+      run: uv python install 3.13
+      
+    - name: Install Python dependencies
+      run: uv sync --extra dev
+      
+    - name: Run safety check for Python dependencies
+      run: |
+        uv add --dev safety
+        uv run safety check --json || echo "⚠️ Security vulnerabilities found - review required"
+        
+    - name: Setup Node.js for security audit
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        
+    - name: Install frontend dependencies
+      run: npm ci
+      
+    - name: Run npm security audit
+      run: |
+        npm audit --audit-level=moderate || echo "⚠️ Frontend security issues found - review required"

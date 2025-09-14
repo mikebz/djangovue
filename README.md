@@ -86,7 +86,52 @@ uv add --dev <package>                # Add development dependency
 uv sync                               # Install dependencies
 ```
 
-## 📦 What's New
+## � CI/CD & Deployment
+
+### GitHub Actions Workflows
+
+This project includes comprehensive CI/CD pipelines:
+
+#### **Continuous Integration** (`ci.yml`)
+- **Python Linting**: Ruff linting and Black formatting
+- **Frontend Linting**: Build validation and asset checking
+- **Python Tests**: Django tests and pytest
+- **Integration Tests**: Full application testing
+- **Security Scanning**: Dependency vulnerability checks
+
+#### **Dependency Management** (`dependencies.yml`)
+- **Weekly Updates**: Automated dependency updates
+- **Security Monitoring**: Vulnerability scanning and reporting
+- **Pull Requests**: Automated PRs for dependency updates
+
+### Local Development with Docker
+
+```bash
+# Build and run with Docker
+make docker-build
+make docker-run
+
+# Development environment with Docker Compose
+make docker-dev
+
+# Or manually:
+docker-compose up --build
+```
+
+### Manual Testing
+
+```bash
+# Run all quality checks
+make qa
+
+# Build production assets
+make prod-build
+
+# Test Docker build
+make docker-build
+```
+
+## �📦 What's New
 
 - **Python 3.11+** required (upgraded from 3.10+, using Python 3.13.5)
 - **Django 5.1** (upgraded from 4.2)
@@ -98,6 +143,9 @@ uv sync                               # Install dependencies
 - **Code formatting** with Black
 - **Improved URL patterns** (modern Django path() syntax)
 - **Makefile** for development automation
+- **GitHub Actions CI/CD** with comprehensive testing
+- **Docker support** for containerized deployment
+- **Automated dependency updates** and security monitoring
 
 ## 📝 Migration Notes
 
@@ -107,6 +155,9 @@ If you're upgrading from the old setup:
 - Virtual environment is automatically managed by UV in `.venv/`
 - All dependencies are pinned in `uv.lock` for reproducible builds
 - **Python 3.11+** is now required (upgraded from 3.10+)
+- **GitHub Actions** automatically test all changes
+- **Docker support** available for containerized deployments
+- **Automated security scanning** monitors for vulnerabilities
 
 ## Sources
 This only worked because people before me created some wonderful examples.

@@ -132,7 +132,9 @@ DJANGO_VITE = {
         "dev_mode": False,  # Force production mode for now
         "dev_server_host": "127.0.0.1",
         "dev_server_port": 3000,
-        "manifest_path": os.path.join(BASE_DIR, "frontend", "dist", ".vite", "manifest.json"),
+        "manifest_path": os.path.join(
+            BASE_DIR, "frontend", "dist", ".vite", "manifest.json"
+        ),
         "static_url_prefix": "",
     }
 }
