@@ -20,7 +20,7 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-12s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(install|run|migrate|shell|test|lint|format|check|clean|setup|status)"
 	@echo ""
 	@echo "$(GREEN)Frontend:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-12s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(frontend|build|watch)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-12s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(frontend-|build|watch|preview)"
 	@echo ""
 	@echo "$(GREEN)Compound commands:$(RESET)"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-12s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(all|dev)"
@@ -97,6 +97,10 @@ frontend-install: ## Install Node.js dependencies
 	@echo "$(BLUE)Installing Node.js dependencies...$(RESET)"
 	npm install
 
+frontend-dev: ## Start Vite development server
+	@echo "$(BLUE)Starting Vite development server...$(RESET)"
+	npm run dev
+
 frontend-build: ## Build frontend for production
 	@echo "$(BLUE)Building frontend...$(RESET)"
 	npm run build
@@ -104,6 +108,10 @@ frontend-build: ## Build frontend for production
 frontend-watch: ## Watch frontend files for changes
 	@echo "$(BLUE)Watching frontend files...$(RESET)"
 	npm run watch
+
+frontend-preview: ## Preview production build
+	@echo "$(BLUE)Starting preview server...$(RESET)"
+	npm run preview
 
 # Cleanup commands
 clean: ## Clean up generated files
@@ -129,6 +137,9 @@ setup: install frontend-install migrate ## Initial project setup
 dev: migrate frontend-build ## Prepare for development
 	@echo "$(GREEN)Development environment ready!$(RESET)"
 	@echo "Run '$(YELLOW)make run$(RESET)' to start the server"
+
+dev-full: frontend-build run ## Build frontend and start Django server
+	@echo "$(GREEN)Starting full development environment...$(RESET)"
 
 all: setup ## Setup everything and start development server
 	@echo "$(GREEN)Starting development server...$(RESET)"

@@ -1,4 +1,4 @@
-{% load render_bundle from webpack_loader %}
+{% load django_vite %}
 
 <!DOCTYPE html>
 <html>
@@ -8,6 +8,6 @@
 </head>
 <body>
   <div id="app"></div>
-  {% render_bundle 'main' %}
+  {% vite_asset 'frontend/js/main.js' %}
 </body>
 </html>

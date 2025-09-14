@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "backend",
-    "webpack_loader",
+    "django_vite",
 ]
 
 MIDDLEWARE = [
@@ -121,11 +121,18 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
-STATICFILES_DIRS = (os.path.join(BASE_DIR, "frontend"),)
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "frontend"),
+    os.path.join(BASE_DIR, "frontend", "dist"),
+]
 
-WEBPACK_LOADER = {
-    "DEFAULT": {
-        "BUNDLE_DIR_NAME": "bundles/",
-        "STATS_FILE": os.path.join(BASE_DIR, "webpack-stats.json"),
+# Vite configuration
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": False,  # Force production mode for now
+        "dev_server_host": "127.0.0.1",
+        "dev_server_port": 3000,
+        "manifest_path": os.path.join(BASE_DIR, "frontend", "dist", ".vite", "manifest.json"),
+        "static_url_prefix": "",
     }
 }

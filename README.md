@@ -65,9 +65,17 @@ make qa             # Run all quality checks and fixes
 
 ### Frontend commands:
 ```bash
-make frontend-install    # Install Node.js dependencies
+make frontend-dev        # Start Vite development server (HMR)
 make frontend-build      # Build for production
 make frontend-watch      # Watch for changes and rebuild
+make frontend-preview    # Preview production build
+```
+
+Or use npm directly:
+```bash
+npm run dev              # Start Vite development server
+npm run build            # Build for production
+npm run preview          # Preview production build
 ```
 
 ### Using UV directly:
@@ -83,6 +91,9 @@ uv sync                               # Install dependencies
 - **Python 3.11+** required (upgraded from 3.10+, using Python 3.13.5)
 - **Django 5.1** (upgraded from 4.2)
 - **UV package manager** for faster dependency management
+- **Vite 7.x** build tool (replaced Webpack 3.x) - 50x faster dev server
+- **Vue 2.7** (upgraded from 2.4, latest Vue 2.x with Composition API support)
+- **Hot Module Replacement (HMR)** for instant development feedback
 - **Modern linting** with Ruff (replaces pylint)
 - **Code formatting** with Black
 - **Improved URL patterns** (modern Django path() syntax)

@@ -16,9 +16,12 @@ __pycache__/
 
 # Node.js
 node_modules/
-build/
 package-lock.json
 
-# Webpack
-webpack-stats.json
+# Build outputs
 frontend/bundles/*
+frontend/dist/
+build/
+
+# Vite
+.vite/
