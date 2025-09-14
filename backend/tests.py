@@ -1,5 +1,4 @@
-from django.test import TestCase, Client
-from django.urls import reverse
+from django.test import Client, TestCase
 
 
 class IndexViewTest(TestCase):
@@ -18,7 +17,7 @@ class IndexViewTest(TestCase):
         WHEN: The index view is called
         THEN: It should return a 200 status code
         """
-        response = self.client.get('/')
+        response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
 
     def test_index_view_uses_correct_template(self):
@@ -27,8 +26,8 @@ class IndexViewTest(TestCase):
         WHEN: The index view is called
         THEN: It should use the index.html template
         """
-        response = self.client.get('/')
-        self.assertTemplateUsed(response, 'index.html')
+        response = self.client.get("/")
+        self.assertTemplateUsed(response, "index.html")
 
     def test_index_view_contains_vue_app_div(self):
         """
@@ -36,7 +35,7 @@ class IndexViewTest(TestCase):
         WHEN: The index view is called
         THEN: The response should contain the Vue.js app mount point
         """
-        response = self.client.get('/')
+        response = self.client.get("/")
         self.assertContains(response, '<div id="app">')
 
     def test_index_view_contains_vue_js_title(self):
@@ -45,8 +44,8 @@ class IndexViewTest(TestCase):
         WHEN: The index view is called
         THEN: The response should contain the Vue.js App title
         """
-        response = self.client.get('/')
-        self.assertContains(response, 'Vue.js App')
+        response = self.client.get("/")
+        self.assertContains(response, "Vue.js App")
 
     def test_index_view_contains_javascript_bundle(self):
         """
@@ -54,8 +53,8 @@ class IndexViewTest(TestCase):
         WHEN: The index view is called
         THEN: The response should include JavaScript bundle references
         """
-        response = self.client.get('/')
-        self.assertContains(response, '.js')
+        response = self.client.get("/")
+        self.assertContains(response, ".js")
 
     def test_index_view_contains_css_bundle(self):
         """
@@ -63,8 +62,8 @@ class IndexViewTest(TestCase):
         WHEN: The index view is called
         THEN: The response should include CSS bundle references
         """
-        response = self.client.get('/')
-        self.assertContains(response, '.css')
+        response = self.client.get("/")
+        self.assertContains(response, ".css")
 
 
 class URLConfigTest(TestCase):
@@ -79,11 +78,11 @@ class URLConfigTest(TestCase):
         WHEN: A request is made to '/'
         THEN: It should resolve to the index view
         """
-        response = self.client.get('/')
+        response = self.client.get("/")
         # Test that the response is successful
         self.assertEqual(response.status_code, 200)
         # Test that it contains expected content
-        self.assertContains(response, 'Vue.js App')
+        self.assertContains(response, "Vue.js App")
 
 
 class ViteIntegrationTest(TestCase):
@@ -98,9 +97,9 @@ class ViteIntegrationTest(TestCase):
         WHEN: The index page is loaded
         THEN: Vite-generated assets should be referenced
         """
-        response = self.client.get('/')
+        response = self.client.get("/")
         # Check that the response contains script tags
-        self.assertContains(response, '<script')
+        self.assertContains(response, "<script")
         # Check that the response contains link tags for CSS
         self.assertContains(response, 'rel="stylesheet"')
 
@@ -112,5 +111,5 @@ class ViteIntegrationTest(TestCase):
         """
         # This test ensures static file serving is configured
         # In production, this would be handled by a web server
-        response = self.client.get('/')
+        response = self.client.get("/")
         self.assertEqual(response.status_code, 200)

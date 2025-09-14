@@ -92,9 +92,6 @@ jobs:
     - name: Run Django tests
       run: uv run python manage.py test
       
-    - name: Run pytest tests
-      run: uv run pytest --tb=short
-      
   integration-test:
     name: Integration Tests
     runs-on: ubuntu-latest

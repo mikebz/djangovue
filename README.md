@@ -95,7 +95,7 @@ This project includes comprehensive CI/CD pipelines:
 #### **Continuous Integration** (`ci.yml`)
 - **Python Linting**: Ruff linting and Black formatting
 - **Frontend Linting**: Build validation and asset checking
-- **Python Tests**: Django tests and pytest
+- **Python Tests**: Django test suite
 - **Integration Tests**: Full application testing
 - **Security Scanning**: Dependency vulnerability checks
 
