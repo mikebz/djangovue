@@ -29,6 +29,18 @@ jobs:
       run: |
         uv sync --extra dev
         uv lock --upgrade
+    
+    - name: Setup Node.js for frontend build
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+    
+    - name: Install frontend dependencies
+      run: npm ci
+    
+    - name: Build frontend for Django integration
+      run: npm run build
         
     - name: Run tests with updated dependencies
       run: |
