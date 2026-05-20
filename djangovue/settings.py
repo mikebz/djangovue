@@ -1,6 +1,7 @@
 """Django settings for djangovue project."""
 
 import os
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import dj_database_url
@@ -10,7 +11,12 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def get_env_bool(name, *, default=False, environ=None):
+def get_env_bool(
+    name: str,
+    *,
+    default: bool = False,
+    environ: Mapping[str, str] | None = None,
+) -> bool:
     """Return an environment variable as a boolean."""
     env = os.environ if environ is None else environ
     raw_value = env.get(name)
@@ -19,16 +25,26 @@ def get_env_bool(name, *, default=False, environ=None):
     return raw_value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
 
 
-def get_env_list(name, *, default=None, environ=None):
+def get_env_list(
+    name: str,
+    *,
+    default: Sequence[str] | None = None,
+    environ: Mapping[str, str] | None = None,
+) -> list[str]:
     """Return a comma-separated environment variable as a list of strings."""
     env = os.environ if environ is None else environ
     raw_value = env.get(name)
     if raw_value is None:
-        return [] if default is None else default
+        return [] if default is None else list(default)
     return [item.strip() for item in raw_value.split(",") if item.strip()]
 
 
-def get_env_int(name, *, default, environ=None):
+def get_env_int(
+    name: str,
+    *,
+    default: int,
+    environ: Mapping[str, str] | None = None,
+) -> int:
     """Return an environment variable as an integer."""
     env = os.environ if environ is None else environ
     raw_value = env.get(name)

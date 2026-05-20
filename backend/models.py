@@ -1,1 +1,1 @@
-# Create your models here.
+"""Database models for the backend Django app."""

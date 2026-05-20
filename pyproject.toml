@@ -20,6 +20,7 @@ dependencies = [
 dev = [
     "ruff>=0.1.0",
     "black>=23.0.0",
+    "mypy>=1.11.0",
 ]
 
 [build-system]
@@ -68,3 +69,13 @@ extend-exclude = '''
   | dist
 )/
 '''
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+exclude = ["backend/migrations/"]
+files = ["backend", "djangovue", "manage.py", "scripts/e2e_template_check.py"]

@@ -7,7 +7,7 @@ import sys
 import django
 from django.template.loader import render_to_string
 
-EXPECTED_SNIPPETS = (
+EXPECTED_SNIPPETS: tuple[str, ...] = (
     "Vue.js App",
     '<div id="app">',
     ".js",

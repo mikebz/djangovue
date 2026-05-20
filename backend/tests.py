@@ -1,3 +1,5 @@
+"""Test suite for backend views, routing, and settings helpers."""
+
 from django.core.exceptions import ImproperlyConfigured
 from django.test import Client, SimpleTestCase, TestCase
 
@@ -10,11 +12,11 @@ class IndexViewTest(TestCase):
     Following TDD principles with clear test naming and structure.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test client for each test method."""
         self.client = Client()
 
-    def test_index_view_returns_200_status_code(self):
+    def test_index_view_returns_200_status_code(self) -> None:
         """
         GIVEN: A request to the root URL
         WHEN: The index view is called
@@ -23,7 +25,7 @@ class IndexViewTest(TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
 
-    def test_index_view_uses_correct_template(self):
+    def test_index_view_uses_correct_template(self) -> None:
         """
         GIVEN: A request to the root URL
         WHEN: The index view is called
@@ -32,7 +34,7 @@ class IndexViewTest(TestCase):
         response = self.client.get("/")
         self.assertTemplateUsed(response, "index.html")
 
-    def test_index_view_contains_vue_app_div(self):
+    def test_index_view_contains_vue_app_div(self) -> None:
         """
         GIVEN: A request to the root URL
         WHEN: The index view is called
@@ -41,7 +43,7 @@ class IndexViewTest(TestCase):
         response = self.client.get("/")
         self.assertContains(response, '<div id="app">')
 
-    def test_index_view_contains_vue_js_title(self):
+    def test_index_view_contains_vue_js_title(self) -> None:
         """
         GIVEN: A request to the root URL
         WHEN: The index view is called
@@ -50,7 +52,7 @@ class IndexViewTest(TestCase):
         response = self.client.get("/")
         self.assertContains(response, "Vue.js App")
 
-    def test_index_view_contains_javascript_bundle(self):
+    def test_index_view_contains_javascript_bundle(self) -> None:
         """
         GIVEN: A request to the root URL
         WHEN: The index view is called
@@ -59,7 +61,7 @@ class IndexViewTest(TestCase):
         response = self.client.get("/")
         self.assertContains(response, ".js")
 
-    def test_index_view_contains_css_bundle(self):
+    def test_index_view_contains_css_bundle(self) -> None:
         """
         GIVEN: A request to the root URL
         WHEN: The index view is called
@@ -75,7 +77,7 @@ class URLConfigTest(TestCase):
     Ensures proper URL patterns are working.
     """
 
-    def test_root_url_resolves_to_index_view(self):
+    def test_root_url_resolves_to_index_view(self) -> None:
         """
         GIVEN: The root URL pattern
         WHEN: A request is made to '/'
@@ -94,7 +96,7 @@ class ViteIntegrationTest(TestCase):
     Ensures build assets are properly integrated.
     """
 
-    def test_vite_assets_are_loaded(self):
+    def test_vite_assets_are_loaded(self) -> None:
         """
         GIVEN: A built frontend with Vite
         WHEN: The index page is loaded
@@ -106,7 +108,7 @@ class ViteIntegrationTest(TestCase):
         # Check that the response contains link tags for CSS
         self.assertContains(response, 'rel="stylesheet"')
 
-    def test_static_files_configuration_works(self):
+    def test_static_files_configuration_works(self) -> None:
         """
         GIVEN: Django static files configuration
         WHEN: Static files are requested
@@ -121,7 +123,8 @@ class ViteIntegrationTest(TestCase):
 class HealthEndpointTest(SimpleTestCase):
     """Test health endpoint behavior used by container checks."""
 
-    def test_healthz_returns_ok_json(self):
+    def test_healthz_returns_ok_json(self) -> None:
+        """Return a healthy JSON payload on the health endpoint."""
         response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
@@ -130,34 +133,40 @@ class HealthEndpointTest(SimpleTestCase):
 class SettingsHelpersTest(SimpleTestCase):
     """Test environment parsing helpers used by project settings."""
 
-    def test_get_env_bool_defaults_when_missing(self):
+    def test_get_env_bool_defaults_when_missing(self) -> None:
+        """Use the default bool when an environment variable is missing."""
         self.assertFalse(project_settings.get_env_bool("DEBUG", environ={}))
 
-    def test_get_env_bool_parses_truthy_values(self):
+    def test_get_env_bool_parses_truthy_values(self) -> None:
+        """Parse accepted truthy strings to True."""
         environ = {"DEBUG": "true"}
         self.assertTrue(project_settings.get_env_bool("DEBUG", environ=environ))
 
-    def test_get_env_list_splits_values(self):
+    def test_get_env_list_splits_values(self) -> None:
+        """Split comma-separated list values and trim whitespace."""
         environ = {"ALLOWED_HOSTS": "example.com, api.example.com"}
         self.assertEqual(
             project_settings.get_env_list("ALLOWED_HOSTS", environ=environ),
             ["example.com", "api.example.com"],
         )
 
-    def test_get_env_int_uses_default(self):
+    def test_get_env_int_uses_default(self) -> None:
+        """Use the default integer when an environment variable is missing."""
         self.assertEqual(
             project_settings.get_env_int("DB_CONN_MAX_AGE", default=60, environ={}),
             60,
         )
 
-    def test_get_env_int_parses_integer(self):
+    def test_get_env_int_parses_integer(self) -> None:
+        """Parse integer values from environment variables."""
         environ = {"DB_CONN_MAX_AGE": "120"}
         self.assertEqual(
             project_settings.get_env_int("DB_CONN_MAX_AGE", default=0, environ=environ),
             120,
         )
 
-    def test_get_env_int_raises_for_invalid_value(self):
+    def test_get_env_int_raises_for_invalid_value(self) -> None:
+        """Raise ImproperlyConfigured for non-integer environment values."""
         environ = {"DB_CONN_MAX_AGE": "not-a-number"}
         with self.assertRaises(ImproperlyConfigured):
             project_settings.get_env_int("DB_CONN_MAX_AGE", default=60, environ=environ)

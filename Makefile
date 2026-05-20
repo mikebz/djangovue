@@ -31,6 +31,8 @@ RUFF_RUN := uv run ruff
 BLACK_RUN := uv run black
 endif
 
+MYPY_RUN := $(PRUN) -m mypy
+
 DJMANAGE := $(DJENV) $(PRUN) manage.py
 
 ensure-python-tools:
@@ -122,6 +124,10 @@ check: ## Run Django system checks
 	$(MAKE) ensure-python-tools
 	$(DJMANAGE) check
 
+typecheck: ## Run static type checking with mypy
+	$(MAKE) ensure-python-tools
+	$(MYPY_RUN)
+
 status: ## Show project status and environment info
 	@echo "$(BLUE)Project Status:$(RESET)"
 	@echo "Python version: $$($(PRUN) --version)"
@@ -187,6 +193,7 @@ e2e: frontend-build ## Run end-to-end checks (template render + server boot)
 
 verify: ## Run the same lint, checks, tests, and e2e used in CI
 	$(MAKE) lint
+	$(MAKE) typecheck
 	$(MAKE) check
 	$(MAKE) test
 	$(MAKE) e2e
