@@ -1,7 +1,7 @@
 # Makefile for djangovue project
 # Uses UV for Python package management
 
-.PHONY: help install run migrate shell test lint format check clean setup frontend all
+.PHONY: help install run migrate shell test test-all e2e lint lint-all format format-check check verify clean setup frontend all
 
 # Default target
 .DEFAULT_GOAL := help
@@ -12,6 +12,40 @@ GREEN := \033[32m
 YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
+
+# Default Django env values for local commands.
+# CI can override these values via workflow env blocks.
+SECRET_KEY ?= dev-secret-key-change-me
+DEBUG ?= 1
+ALLOWED_HOSTS ?= localhost,127.0.0.1
+DJENV := SECRET_KEY=$(SECRET_KEY) DEBUG=$(DEBUG) ALLOWED_HOSTS=$(ALLOWED_HOSTS)
+
+UV_BIN := $(shell command -v uv 2>/dev/null)
+ifeq ($(UV_BIN),)
+PRUN := .venv/bin/python
+RUFF_RUN := .venv/bin/ruff
+BLACK_RUN := .venv/bin/black
+else
+PRUN := uv run python
+RUFF_RUN := uv run ruff
+BLACK_RUN := uv run black
+endif
+
+MYPY_RUN := $(PRUN) -m mypy
+
+DJMANAGE := $(DJENV) $(PRUN) manage.py
+
+ensure-python-tools:
+	@if [ -n "$(UV_BIN)" ] || [ -x .venv/bin/python ]; then \
+		exit 0; \
+	else \
+		echo "Bootstrapping local Python environment (.venv)"; \
+		$(MAKE) install; \
+		if [ ! -x .venv/bin/python ] && [ -z "$(UV_BIN)" ]; then \
+			echo "Failed to initialize Python toolchain." >&2; \
+			exit 1; \
+		fi; \
+	fi
 
 help: ## Show this help message
 	@echo "$(BLUE)Django + Vue Development Commands$(RESET)"
@@ -31,98 +65,108 @@ help: ## Show this help message
 	@echo "  uv add --dev <package>             # Add development dependency"
 
 install: ## Install Python dependencies
-	@echo "$(BLUE)Installing dependencies...$(RESET)"
-	uv sync --extra dev
+	@if [ -n "$(UV_BIN)" ]; then \
+		uv sync --extra dev; \
+	else \
+		python3 -m venv .venv; \
+		.venv/bin/pip install --upgrade pip; \
+		.venv/bin/pip install -e .[dev]; \
+	fi
 
 run: ## Start Django development server
-	@echo "$(BLUE)Starting Django development server...$(RESET)"
-	uv run python manage.py runserver
+	$(MAKE) ensure-python-tools
+	$(DJMANAGE) runserver
 
 migrate: ## Run Django migrations
-	@echo "$(BLUE)Running Django migrations...$(RESET)"
-	uv run python manage.py migrate
+	$(MAKE) ensure-python-tools
+	$(DJMANAGE) migrate
 
 makemigrations: ## Create new Django migrations
-	@echo "$(BLUE)Creating Django migrations...$(RESET)"
-	uv run python manage.py makemigrations
+	$(MAKE) ensure-python-tools
+	$(DJMANAGE) makemigrations
 
 shell: ## Start Django shell
-	@echo "$(BLUE)Starting Django shell...$(RESET)"
-	uv run python manage.py shell
+	$(MAKE) ensure-python-tools
+	$(DJMANAGE) shell
 
 test: ## Run Django tests
-	@echo "$(BLUE)Running tests...$(RESET)"
-	uv run python manage.py test
+	$(MAKE) ensure-python-tools
+	$(DJMANAGE) test
+
+test-all: ## Run all unit/integration tests
+	$(MAKE) check
+	$(MAKE) test
+	$(MAKE) e2e
 
 lint: ## Run code linter (ruff)
-	@echo "$(BLUE)Running linter...$(RESET)"
-	uv run ruff check backend/ djangovue/
+	$(MAKE) ensure-python-tools
+	$(RUFF_RUN) check .
+	$(RUFF_RUN) format --check .
+	$(BLACK_RUN) --check .
+
+lint-all: lint ## Run all lint checks
 
 lint-fix: ## Run linter with auto-fix
-	@echo "$(BLUE)Running linter with auto-fix...$(RESET)"
-	uv run ruff check --fix backend/ djangovue/
+	$(MAKE) ensure-python-tools
+	$(RUFF_RUN) check --fix .
 
 format: ## Format code with black
-	@echo "$(BLUE)Formatting code...$(RESET)"
-	uv run black backend/ djangovue/
+	$(MAKE) ensure-python-tools
+	$(RUFF_RUN) format .
+	$(BLACK_RUN) .
 
 format-check: ## Check code formatting without making changes
-	@echo "$(BLUE)Checking code formatting...$(RESET)"
-	uv run black --check backend/ djangovue/
+	$(MAKE) ensure-python-tools
+	$(RUFF_RUN) format --check .
+	$(BLACK_RUN) --check .
 
 check: ## Run Django system checks
-	@echo "$(BLUE)Running Django system checks...$(RESET)"
-	uv run python manage.py check
+	$(MAKE) ensure-python-tools
+	$(DJMANAGE) check
+
+typecheck: ## Run static type checking with mypy
+	$(MAKE) ensure-python-tools
+	$(MYPY_RUN)
 
 status: ## Show project status and environment info
 	@echo "$(BLUE)Project Status:$(RESET)"
-	@echo "Python version: $$(uv run python --version)"
-	@echo "UV version: $$(uv --version)"
-	@echo "Django version: $$(uv run python -c 'import django; print(django.get_version())')"
+	@echo "Python version: $$($(PRUN) --version)"
+	@echo "UV version: $$(if [ -n \"$(UV_BIN)\" ]; then uv --version; else echo \"not installed\"; fi)"
+	@echo "Django version: $$($(PRUN) -c 'import django; print(django.get_version())')"
 	@echo "Virtual environment: $$(if [ -d .venv ]; then echo "✓ Active (.venv)"; else echo "✗ Not found"; fi)"
 	@echo "Dependencies: $$(if [ -f uv.lock ]; then echo "✓ Locked (uv.lock)"; else echo "✗ Not locked"; fi)"
 	@echo "Node.js: $$(if command -v node >/dev/null 2>&1; then echo "✓ $$(node --version)"; else echo "✗ Not installed"; fi)"
 	@echo "NPM packages: $$(if [ -d node_modules ]; then echo "✓ Installed"; else echo "✗ Not installed"; fi)"
 
 collectstatic: ## Collect static files
-	@echo "$(BLUE)Collecting static files...$(RESET)"
-	uv run python manage.py collectstatic --noinput
+	$(MAKE) ensure-python-tools
+	$(DJMANAGE) collectstatic --noinput
 
 superuser: ## Create Django superuser
-	@echo "$(BLUE)Creating Django superuser...$(RESET)"
-	uv run python manage.py createsuperuser
+	$(MAKE) ensure-python-tools
+	$(DJMANAGE) createsuperuser
 
 # Frontend commands
 frontend-install: ## Install Node.js dependencies
-	@echo "$(BLUE)Installing Node.js dependencies...$(RESET)"
-	npm install
+	npm ci
 
 frontend-dev: ## Start Vite development server
-	@echo "$(BLUE)Starting Vite development server...$(RESET)"
 	npm run dev
 
-frontend-build: ## Build frontend for production
-	@echo "$(BLUE)Building frontend...$(RESET)"
-	npm run build
-
 frontend-watch: ## Watch frontend files for changes
-	@echo "$(BLUE)Watching frontend files...$(RESET)"
 	npm run watch
 
 frontend-preview: ## Preview production build
-	@echo "$(BLUE)Starting preview server...$(RESET)"
 	npm run preview
 
 # Cleanup commands
 clean: ## Clean up generated files
-	@echo "$(BLUE)Cleaning up...$(RESET)"
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -delete
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	rm -rf frontend/bundles/*
 
 clean-all: clean ## Clean everything including dependencies
-	@echo "$(BLUE)Cleaning everything...$(RESET)"
 	rm -rf .venv/
 	rm -rf node_modules/
 	rm -f uv.lock
@@ -130,36 +174,49 @@ clean-all: clean ## Clean everything including dependencies
 
 # Development setup
 setup: install frontend-install migrate ## Initial project setup
-	@echo "$(GREEN)Project setup complete!$(RESET)"
-	@echo "Run '$(YELLOW)make dev$(RESET)' to start development"
 
 dev: migrate frontend-build ## Prepare for development
-	@echo "$(GREEN)Development environment ready!$(RESET)"
-	@echo "Run '$(YELLOW)make run$(RESET)' to start the server"
 
 dev-full: frontend-build run ## Build frontend and start Django server
-	@echo "$(GREEN)Starting full development environment...$(RESET)"
 
 all: setup ## Setup everything and start development server
-	@echo "$(GREEN)Starting development server...$(RESET)"
 	make run
 
 # Quality assurance
 qa: lint-fix format test check ## Run all quality checks and fixes
-	@echo "$(GREEN)All quality checks passed!$(RESET)"
+
+e2e: frontend-build ## Run end-to-end checks (template render + server boot)
+	$(MAKE) ensure-python-tools
+	$(DJMANAGE) migrate
+	$(DJENV) $(PRUN) scripts/e2e_template_check.py
+	$(DJENV) ./scripts/e2e_server_smoke.sh
+
+verify: ## Run the same lint, checks, tests, and e2e used in CI
+	$(MAKE) lint
+	$(MAKE) typecheck
+	$(MAKE) check
+	$(MAKE) test
+	$(MAKE) e2e
+
+frontend-build: ## Build frontend for production
+	npm run build
+	if [ ! -d "frontend/dist" ]; then \
+		echo "Frontend build failed - no dist directory found"; \
+		exit 1; \
+	fi
+	if [ ! -f "frontend/dist/.vite/manifest.json" ]; then \
+		echo "Frontend build failed - no manifest.json found"; \
+		exit 1; \
+	fi
 
 # Production commands
 prod-build: install frontend-build collectstatic ## Build for production
-	@echo "$(GREEN)Production build complete!$(RESET)"
 
 docker-build: ## Build Docker image
-	@echo "$(BLUE)Building Docker image...$(RESET)"
 	docker build -t djangovue:latest .
 
 docker-run: docker-build ## Build and run Docker container
-	@echo "$(BLUE)Running Docker container...$(RESET)"
 	docker run --rm -p 8000:8000 djangovue:latest
 
 docker-dev: ## Run development environment in Docker
-	@echo "$(BLUE)Starting development environment in Docker...$(RESET)"
 	docker-compose up --build

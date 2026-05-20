@@ -1,10 +1,10 @@
 # djangovue
 ![Vue.js Logo](https://github.com/mikebz/djangovue/raw/master/frontend/img/logo.png "Vue.js")
 
-This is a starter project for Django with Vue.js.  I fell in love with the readability you get in Vue.js and 
+This is a starter project for Django with Vue.js.  I fell in love with the readability you get in Vue.js and
 decided to create a project where all components are laid out in the most readable way.
 
-Note that this doesn't have features like hot reloading for webpack, but it's a good webpack starting point to build on.
+The frontend uses Vue 3 + Vite, and the backend uses Django 5 with environment-driven settings.
 
 ## ⚡ Modern Package Management (UV)
 
@@ -27,18 +27,26 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync --extra dev
 ```
 
-4. Install JavaScript dependencies and build
+4. Configure environment variables
 ```bash
-npm install
+cp .env.example .env
+set -a
+source .env
+set +a
+```
+
+5. Install JavaScript dependencies and build
+```bash
+npm ci
 npm run build
 ```
 
-5. Run Django migrations
+6. Run Django migrations
 ```bash
 uv run python manage.py migrate
 ```
 
-6. Run the Django project
+7. Run the Django project
 ```bash
 uv run python manage.py runserver
 # Or use the Makefile:
@@ -81,12 +89,28 @@ npm run preview          # Preview production build
 ### Using UV directly:
 ```bash
 uv run python manage.py <command>     # Run Django commands
-uv add <package>                      # Add production dependency  
+uv add <package>                      # Add production dependency
 uv add --dev <package>                # Add development dependency
 uv sync                               # Install dependencies
 ```
 
-## � CI/CD & Deployment
+## Environment Variables
+
+Required:
+- `SECRET_KEY`: Django secret key.
+- `ALLOWED_HOSTS`: Comma-separated hostnames allowed when `DEBUG=0`.
+
+Optional:
+- `DEBUG`: `1/true` for development mode, defaults to `0`.
+- `DATABASE_URL`: Database connection URL. Defaults to local SQLite.
+- `DB_CONN_MAX_AGE`: Database persistent connection age in seconds (default `60`).
+- `SECURE_SSL_REDIRECT`: Force HTTPS redirects (defaults to `0`, set to `1` in TLS-terminated production).
+- `USE_X_FORWARDED_PROTO`: Trust `X-Forwarded-Proto` from a controlled reverse proxy (default `0`).
+- `DJANGO_VITE_DEV_MODE`: Enables Vite dev server mode.
+- `DJANGO_VITE_DEV_SERVER_HOST`: Vite host (default `127.0.0.1`).
+- `DJANGO_VITE_DEV_SERVER_PORT`: Vite port (default `3000`).
+
+## CI/CD & Deployment
 
 ### GitHub Actions Workflows
 
@@ -117,6 +141,8 @@ make docker-dev
 # Or manually:
 docker-compose up --build
 ```
+
+The production container now serves Django through Gunicorn and exposes a health endpoint at `/healthz`.
 
 ### Manual Testing
 

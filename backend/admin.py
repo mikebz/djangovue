@@ -1,1 +1,1 @@
-# Register your models here.
+"""Django admin registrations for backend models."""

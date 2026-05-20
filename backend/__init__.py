@@ -1,0 +1,1 @@
+"""Backend Django application package."""
