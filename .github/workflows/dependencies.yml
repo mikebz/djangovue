@@ -31,7 +31,7 @@ jobs:
 
     - name: Update UV lock file
       run: |
-        make ci-install-python
+        make install
         uv lock --upgrade
 
     - name: Setup Node.js for frontend build
@@ -41,16 +41,18 @@ jobs:
         cache: 'npm'
 
     - name: Install frontend dependencies
-      run: make ci-install-frontend
+      run: make frontend-install
 
     - name: Build frontend for Django integration
-      run: make ci-frontend-build
+      run: make frontend-build
 
     - name: Run tests with updated dependencies
       run: |
-        make ci-install-python
-        make ci-test-python
-        make ci-lint-python
+        make install
+        make check
+        make test
+        make lint
+        make e2e
 
     - name: Create Pull Request for Python updates
       uses: peter-evans/create-pull-request@v5

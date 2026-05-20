@@ -1,8 +1,7 @@
 # Makefile for djangovue project
 # Uses UV for Python package management
 
-.PHONY: help install run migrate shell test test-all lint lint-all format format-check check clean setup frontend all
-.PHONY: ci-install-python ci-install-frontend ci-lint-python ci-test-python ci-test-integration ci-frontend-build
+.PHONY: help install run migrate shell test test-all e2e lint lint-all format format-check check verify clean setup frontend all
 
 # Default target
 .DEFAULT_GOAL := help
@@ -19,7 +18,7 @@ RESET := \033[0m
 SECRET_KEY ?= dev-secret-key-change-me
 DEBUG ?= 1
 ALLOWED_HOSTS ?= localhost,127.0.0.1
-DJANGO_ENV := SECRET_KEY="$(SECRET_KEY)" DEBUG="$(DEBUG)" ALLOWED_HOSTS="$(ALLOWED_HOSTS)"
+DJANGO_ENV := SECRET_KEY=$(SECRET_KEY) DEBUG=$(DEBUG) ALLOWED_HOSTS=$(ALLOWED_HOSTS)
 
 help: ## Show this help message
 	@echo "$(BLUE)Django + Vue Development Commands$(RESET)"
@@ -39,59 +38,47 @@ help: ## Show this help message
 	@echo "  uv add --dev <package>             # Add development dependency"
 
 install: ## Install Python dependencies
-	@echo "$(BLUE)Installing dependencies...$(RESET)"
 	uv sync --extra dev
 
 run: ## Start Django development server
-	@echo "$(BLUE)Starting Django development server...$(RESET)"
 	$(DJANGO_ENV) uv run python manage.py runserver
 
 migrate: ## Run Django migrations
-	@echo "$(BLUE)Running Django migrations...$(RESET)"
 	$(DJANGO_ENV) uv run python manage.py migrate
 
 makemigrations: ## Create new Django migrations
-	@echo "$(BLUE)Creating Django migrations...$(RESET)"
 	$(DJANGO_ENV) uv run python manage.py makemigrations
 
 shell: ## Start Django shell
-	@echo "$(BLUE)Starting Django shell...$(RESET)"
 	uv run python manage.py shell
 
 test: ## Run Django tests
-	@echo "$(BLUE)Running tests...$(RESET)"
 	$(DJANGO_ENV) uv run python manage.py test
 
-test-all: ## Run all tests used in CI
-	@echo "$(BLUE)Running full test suite...$(RESET)"
-	$(MAKE) ci-test-python
-	$(MAKE) ci-test-integration
+test-all: ## Run all unit/integration tests
+	$(MAKE) check
+	$(MAKE) test
+	$(MAKE) e2e
 
 lint: ## Run code linter (ruff)
-	@echo "$(BLUE)Running linter...$(RESET)"
 	uv run ruff check backend/ djangovue/
 	uv run ruff format --check backend/ djangovue/
 	uv run black --check backend/ djangovue/
 
 lint-all: lint ## Run all lint checks
-	@echo "$(GREEN)Lint checks passed!$(RESET)"
 
 lint-fix: ## Run linter with auto-fix
-	@echo "$(BLUE)Running linter with auto-fix...$(RESET)"
 	uv run ruff check --fix backend/ djangovue/
 
 format: ## Format code with black
-	@echo "$(BLUE)Formatting code...$(RESET)"
 	uv run ruff format backend/ djangovue/
 	uv run black backend/ djangovue/
 
 format-check: ## Check code formatting without making changes
-	@echo "$(BLUE)Checking code formatting...$(RESET)"
 	uv run ruff format --check backend/ djangovue/
 	uv run black --check backend/ djangovue/
 
 check: ## Run Django system checks
-	@echo "$(BLUE)Running Django system checks...$(RESET)"
 	$(DJANGO_ENV) uv run python manage.py check
 
 status: ## Show project status and environment info
@@ -105,44 +92,32 @@ status: ## Show project status and environment info
 	@echo "NPM packages: $$(if [ -d node_modules ]; then echo "✓ Installed"; else echo "✗ Not installed"; fi)"
 
 collectstatic: ## Collect static files
-	@echo "$(BLUE)Collecting static files...$(RESET)"
 	uv run python manage.py collectstatic --noinput
 
 superuser: ## Create Django superuser
-	@echo "$(BLUE)Creating Django superuser...$(RESET)"
 	uv run python manage.py createsuperuser
 
 # Frontend commands
 frontend-install: ## Install Node.js dependencies
-	@echo "$(BLUE)Installing Node.js dependencies...$(RESET)"
 	npm install
 
 frontend-dev: ## Start Vite development server
-	@echo "$(BLUE)Starting Vite development server...$(RESET)"
 	npm run dev
 
-frontend-build: ## Build frontend for production
-	@echo "$(BLUE)Building frontend...$(RESET)"
-	npm run build
-
 frontend-watch: ## Watch frontend files for changes
-	@echo "$(BLUE)Watching frontend files...$(RESET)"
 	npm run watch
 
 frontend-preview: ## Preview production build
-	@echo "$(BLUE)Starting preview server...$(RESET)"
 	npm run preview
 
 # Cleanup commands
 clean: ## Clean up generated files
-	@echo "$(BLUE)Cleaning up...$(RESET)"
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -delete
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	rm -rf frontend/bundles/*
 
 clean-all: clean ## Clean everything including dependencies
-	@echo "$(BLUE)Cleaning everything...$(RESET)"
 	rm -rf .venv/
 	rm -rf node_modules/
 	rm -f uv.lock
@@ -150,52 +125,18 @@ clean-all: clean ## Clean everything including dependencies
 
 # Development setup
 setup: install frontend-install migrate ## Initial project setup
-	@echo "$(GREEN)Project setup complete!$(RESET)"
-	@echo "Run '$(YELLOW)make dev$(RESET)' to start development"
 
 dev: migrate frontend-build ## Prepare for development
-	@echo "$(GREEN)Development environment ready!$(RESET)"
-	@echo "Run '$(YELLOW)make run$(RESET)' to start the server"
 
 dev-full: frontend-build run ## Build frontend and start Django server
-	@echo "$(GREEN)Starting full development environment...$(RESET)"
 
 all: setup ## Setup everything and start development server
-	@echo "$(GREEN)Starting development server...$(RESET)"
 	make run
 
 # Quality assurance
 qa: lint-fix format test check ## Run all quality checks and fixes
-	@echo "$(GREEN)All quality checks passed!$(RESET)"
 
-# CI targets (single source of truth for workflows)
-ci-install-python: ## Install Python dependencies for CI
-	uv sync --extra dev
-
-ci-install-frontend: ## Install frontend dependencies for CI
-	npm ci
-
-ci-frontend-build: ## Build frontend assets and verify manifest
-	npm run build
-	@if [ ! -d "frontend/dist" ]; then \
-		echo "Frontend build failed - no dist directory found"; \
-		exit 1; \
-	fi
-	@if [ ! -f "frontend/dist/.vite/manifest.json" ]; then \
-		echo "Frontend build failed - no manifest.json found"; \
-		exit 1; \
-	fi
-
-ci-lint-python: ## Run Python lint and format checks for CI
-	uv run ruff check backend/ djangovue/
-	uv run ruff format --check backend/ djangovue/
-	uv run black --check backend/ djangovue/
-
-ci-test-python: ## Run Django checks and test suite for CI
-	$(DJANGO_ENV) uv run python manage.py check
-	$(DJANGO_ENV) uv run python manage.py test
-
-ci-test-integration: ## Run Django integration checks used in CI
+e2e: ## Run end-to-end checks (template render + server boot)
 	$(DJANGO_ENV) uv run python manage.py migrate
 	$(DJANGO_ENV) uv run python -c "\
 import os; \
@@ -211,26 +152,38 @@ assert '<div id=\"app\">' in result, 'Template missing Vue.js mount point'; \
 assert '.js' in result, 'Template missing JavaScript bundle'; \
 print('All template assertions passed')\
 "
-	@# Start Django server in background, verify it responds, then stop it.
-	@$(DJANGO_ENV) uv run python manage.py runserver 127.0.0.1:8000 >/tmp/djangovue-ci-server.log 2>&1 & \
+	# Start Django server in background, verify it responds, then stop it.
+	$(DJANGO_ENV) uv run python manage.py runserver 127.0.0.1:8000 >/tmp/djangovue-e2e-server.log 2>&1 & \
 	SERVER_PID=$$!; \
 	sleep 5; \
 	curl -f http://127.0.0.1:8000/ >/dev/null || (echo "Server not responding"; kill $$SERVER_PID; exit 1); \
-	kill $$SERVER_PID; \
-	echo "Development server test passed"
+	kill $$SERVER_PID
+
+verify: ## Run the same lint, checks, tests, and e2e used in CI
+	$(MAKE) lint
+	$(MAKE) check
+	$(MAKE) test
+	$(MAKE) e2e
+
+frontend-build: ## Build frontend for production
+	npm run build
+	if [ ! -d "frontend/dist" ]; then \
+		echo "Frontend build failed - no dist directory found"; \
+		exit 1; \
+	fi
+	if [ ! -f "frontend/dist/.vite/manifest.json" ]; then \
+		echo "Frontend build failed - no manifest.json found"; \
+		exit 1; \
+	fi
 
 # Production commands
 prod-build: install frontend-build collectstatic ## Build for production
-	@echo "$(GREEN)Production build complete!$(RESET)"
 
 docker-build: ## Build Docker image
-	@echo "$(BLUE)Building Docker image...$(RESET)"
 	docker build -t djangovue:latest .
 
 docker-run: docker-build ## Build and run Docker container
-	@echo "$(BLUE)Running Docker container...$(RESET)"
 	docker run --rm -p 8000:8000 djangovue:latest
 
 docker-dev: ## Run development environment in Docker
-	@echo "$(BLUE)Starting development environment in Docker...$(RESET)"
 	docker-compose up --build
