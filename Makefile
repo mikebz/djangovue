@@ -138,26 +138,8 @@ qa: lint-fix format test check ## Run all quality checks and fixes
 
 e2e: ## Run end-to-end checks (template render + server boot)
 	$(DJANGO_ENV) uv run python manage.py migrate
-	$(DJANGO_ENV) uv run python -c "\
-import os; \
-import django; \
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangovue.settings'); \
-django.setup(); \
-from django.template.loader import render_to_string; \
-result = render_to_string('index.html', {}); \
-print('Template rendered successfully'); \
-print('Length:', len(result), 'characters'); \
-assert 'Vue.js App' in result, 'Template missing Vue.js App title'; \
-assert '<div id=\"app\">' in result, 'Template missing Vue.js mount point'; \
-assert '.js' in result, 'Template missing JavaScript bundle'; \
-print('All template assertions passed')\
-"
-	# Start Django server in background, verify it responds, then stop it.
-	$(DJANGO_ENV) uv run python manage.py runserver 127.0.0.1:8000 >/tmp/djangovue-e2e-server.log 2>&1 & \
-	SERVER_PID=$$!; \
-	sleep 5; \
-	curl -f http://127.0.0.1:8000/ >/dev/null || (echo "Server not responding"; kill $$SERVER_PID; exit 1); \
-	kill $$SERVER_PID
+	$(DJANGO_ENV) uv run python scripts/e2e_template_check.py
+	$(DJANGO_ENV) ./scripts/e2e_server_smoke.sh
 
 verify: ## Run the same lint, checks, tests, and e2e used in CI
 	$(MAKE) lint
