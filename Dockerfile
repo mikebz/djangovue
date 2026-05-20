@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies needed for frontend build (including devDependencies like Vite)
+RUN npm ci
 
 # Copy frontend source
 COPY frontend/ ./frontend/
@@ -41,17 +41,17 @@ WORKDIR /app
 # Copy Python dependency files
 COPY pyproject.toml uv.lock ./
 
+# Copy project files required to build/install the local package
+COPY . .
+
 # Install Python dependencies
 RUN uv sync --frozen --no-dev
-
-# Copy project
-COPY . .
 
 # Copy built frontend from previous stage
 COPY --from=frontend-builder /app/frontend/dist/ ./frontend/dist/
 
 # Collect static files
-RUN SECRET_KEY=docker-build-only-secret python manage.py collectstatic --noinput
+RUN SECRET_KEY=docker-build-only-secret DEBUG=1 ALLOWED_HOSTS=localhost uv run python manage.py collectstatic --noinput
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser && \
@@ -66,4 +66,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/healthz || exit 1
 
 # Run application
-CMD ["gunicorn", "djangovue.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
+CMD ["uv", "run", "gunicorn", "djangovue.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
