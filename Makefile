@@ -18,26 +18,32 @@ RESET := \033[0m
 SECRET_KEY ?= dev-secret-key-change-me
 DEBUG ?= 1
 ALLOWED_HOSTS ?= localhost,127.0.0.1
-DJANGO_ENV := SECRET_KEY=$(SECRET_KEY) DEBUG=$(DEBUG) ALLOWED_HOSTS=$(ALLOWED_HOSTS)
+DJENV := SECRET_KEY=$(SECRET_KEY) DEBUG=$(DEBUG) ALLOWED_HOSTS=$(ALLOWED_HOSTS)
 
 UV_BIN := $(shell command -v uv 2>/dev/null)
 ifeq ($(UV_BIN),)
-PYTHON_RUN := .venv/bin/python
+PRUN := .venv/bin/python
 RUFF_RUN := .venv/bin/ruff
 BLACK_RUN := .venv/bin/black
 else
-PYTHON_RUN := uv run python
+PRUN := uv run python
 RUFF_RUN := uv run ruff
 BLACK_RUN := uv run black
 endif
 
+DJMANAGE := $(DJENV) $(PRUN) manage.py
+
 ensure-python-tools:
 	@if [ -n "$(UV_BIN)" ] || [ -x .venv/bin/python ]; then \
 		exit 0; \
+	else \
+		echo "Bootstrapping local Python environment (.venv)"; \
+		$(MAKE) install; \
+		if [ ! -x .venv/bin/python ] && [ -z "$(UV_BIN)" ]; then \
+			echo "Failed to initialize Python toolchain." >&2; \
+			exit 1; \
+		fi; \
 	fi
-	@echo "Missing Python toolchain: install uv or create .venv first." >&2
-	@echo "Try: make install" >&2
-	@exit 1
 
 help: ## Show this help message
 	@echo "$(BLUE)Django + Vue Development Commands$(RESET)"
@@ -67,23 +73,23 @@ install: ## Install Python dependencies
 
 run: ## Start Django development server
 	$(MAKE) ensure-python-tools
-	$(DJANGO_ENV) $(PYTHON_RUN) manage.py runserver
+	$(DJMANAGE) runserver
 
 migrate: ## Run Django migrations
 	$(MAKE) ensure-python-tools
-	$(DJANGO_ENV) $(PYTHON_RUN) manage.py migrate
+	$(DJMANAGE) migrate
 
 makemigrations: ## Create new Django migrations
 	$(MAKE) ensure-python-tools
-	$(DJANGO_ENV) $(PYTHON_RUN) manage.py makemigrations
+	$(DJMANAGE) makemigrations
 
 shell: ## Start Django shell
 	$(MAKE) ensure-python-tools
-	$(DJANGO_ENV) $(PYTHON_RUN) manage.py shell
+	$(DJMANAGE) shell
 
 test: ## Run Django tests
 	$(MAKE) ensure-python-tools
-	$(DJANGO_ENV) $(PYTHON_RUN) manage.py test
+	$(DJMANAGE) test
 
 test-all: ## Run all unit/integration tests
 	$(MAKE) check
@@ -114,13 +120,13 @@ format-check: ## Check code formatting without making changes
 
 check: ## Run Django system checks
 	$(MAKE) ensure-python-tools
-	$(DJANGO_ENV) $(PYTHON_RUN) manage.py check
+	$(DJMANAGE) check
 
 status: ## Show project status and environment info
 	@echo "$(BLUE)Project Status:$(RESET)"
-	@echo "Python version: $$($(PYTHON_RUN) --version)"
+	@echo "Python version: $$($(PRUN) --version)"
 	@echo "UV version: $$(if [ -n \"$(UV_BIN)\" ]; then uv --version; else echo \"not installed\"; fi)"
-	@echo "Django version: $$($(PYTHON_RUN) -c 'import django; print(django.get_version())')"
+	@echo "Django version: $$($(PRUN) -c 'import django; print(django.get_version())')"
 	@echo "Virtual environment: $$(if [ -d .venv ]; then echo "✓ Active (.venv)"; else echo "✗ Not found"; fi)"
 	@echo "Dependencies: $$(if [ -f uv.lock ]; then echo "✓ Locked (uv.lock)"; else echo "✗ Not locked"; fi)"
 	@echo "Node.js: $$(if command -v node >/dev/null 2>&1; then echo "✓ $$(node --version)"; else echo "✗ Not installed"; fi)"
@@ -128,11 +134,11 @@ status: ## Show project status and environment info
 
 collectstatic: ## Collect static files
 	$(MAKE) ensure-python-tools
-	$(DJANGO_ENV) $(PYTHON_RUN) manage.py collectstatic --noinput
+	$(DJMANAGE) collectstatic --noinput
 
 superuser: ## Create Django superuser
 	$(MAKE) ensure-python-tools
-	$(DJANGO_ENV) $(PYTHON_RUN) manage.py createsuperuser
+	$(DJMANAGE) createsuperuser
 
 # Frontend commands
 frontend-install: ## Install Node.js dependencies
@@ -175,9 +181,9 @@ qa: lint-fix format test check ## Run all quality checks and fixes
 
 e2e: frontend-build ## Run end-to-end checks (template render + server boot)
 	$(MAKE) ensure-python-tools
-	$(DJANGO_ENV) $(PYTHON_RUN) manage.py migrate
-	$(DJANGO_ENV) $(PYTHON_RUN) scripts/e2e_template_check.py
-	$(DJANGO_ENV) ./scripts/e2e_server_smoke.sh
+	$(DJMANAGE) migrate
+	$(DJENV) $(PRUN) scripts/e2e_template_check.py
+	$(DJENV) ./scripts/e2e_server_smoke.sh
 
 verify: ## Run the same lint, checks, tests, and e2e used in CI
 	$(MAKE) lint
