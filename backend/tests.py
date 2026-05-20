@@ -1,5 +1,7 @@
 from django.test import Client, TestCase
 
+from djangovue import settings as project_settings
+
 
 class IndexViewTest(TestCase):
     """
@@ -113,3 +115,30 @@ class ViteIntegrationTest(TestCase):
         # In production, this would be handled by a web server
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
+
+
+class HealthEndpointTest(TestCase):
+    """Test health endpoint behavior used by container checks."""
+
+    def test_healthz_returns_ok_json(self):
+        response = self.client.get("/healthz")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
+
+class SettingsHelpersTest(TestCase):
+    """Test environment parsing helpers used by project settings."""
+
+    def test_get_env_bool_defaults_when_missing(self):
+        self.assertFalse(project_settings.get_env_bool("DEBUG", environ={}))
+
+    def test_get_env_bool_parses_truthy_values(self):
+        environ = {"DEBUG": "true"}
+        self.assertTrue(project_settings.get_env_bool("DEBUG", environ=environ))
+
+    def test_get_env_list_splits_values(self):
+        environ = {"ALLOWED_HOSTS": "example.com, api.example.com"}
+        self.assertEqual(
+            project_settings.get_env_list("ALLOWED_HOSTS", environ=environ),
+            ["example.com", "api.example.com"],
+        )

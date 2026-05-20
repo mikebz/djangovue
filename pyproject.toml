@@ -11,6 +11,8 @@ requires-python = ">=3.11"
 dependencies = [
     "django>=5.1,<5.2",
     "django-vite>=3.1.0",
+    "dj-database-url>=2.2.0",
+    "gunicorn>=23.0.0",
     "pytz>=2023.3",
 ]
 

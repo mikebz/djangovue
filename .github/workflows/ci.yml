@@ -70,6 +70,10 @@ jobs:
   test-python:
     name: Python Tests
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-secret-key
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1
     
     steps:
     - name: Checkout code
@@ -108,6 +112,10 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: [lint-python, lint-frontend, test-python]
+    env:
+      SECRET_KEY: ci-secret-key
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1
     
     steps:
     - name: Checkout code

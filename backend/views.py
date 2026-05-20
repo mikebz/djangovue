@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import render
 
 
@@ -9,3 +10,8 @@ def index(request):
         "data": "value",
     }
     return render(request, "index.html", context)
+
+
+def healthz(request):
+    """Simple health endpoint for container readiness/liveness checks."""
+    return JsonResponse({"status": "ok"})

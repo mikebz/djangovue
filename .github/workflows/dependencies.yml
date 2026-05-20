@@ -10,6 +10,10 @@ jobs:
   update-python-deps:
     name: Update Python Dependencies
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-secret-key
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1
     
     steps:
     - name: Checkout code

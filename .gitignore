@@ -4,6 +4,9 @@ venv
 
 # UV cache and environment files
 .python-version
+.env
+.env.*
+!.env.example
 
 # VS Code
 .vscode
