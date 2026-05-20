@@ -20,6 +20,25 @@ DEBUG ?= 1
 ALLOWED_HOSTS ?= localhost,127.0.0.1
 DJANGO_ENV := SECRET_KEY=$(SECRET_KEY) DEBUG=$(DEBUG) ALLOWED_HOSTS=$(ALLOWED_HOSTS)
 
+UV_BIN := $(shell command -v uv 2>/dev/null)
+ifeq ($(UV_BIN),)
+PYTHON_RUN := .venv/bin/python
+RUFF_RUN := .venv/bin/ruff
+BLACK_RUN := .venv/bin/black
+else
+PYTHON_RUN := uv run python
+RUFF_RUN := uv run ruff
+BLACK_RUN := uv run black
+endif
+
+ensure-python-tools:
+	@if [ -n "$(UV_BIN)" ] || [ -x .venv/bin/python ]; then \
+		exit 0; \
+	fi
+	@echo "Missing Python toolchain: install uv or create .venv first." >&2
+	@echo "Try: make install" >&2
+	@exit 1
+
 help: ## Show this help message
 	@echo "$(BLUE)Django + Vue Development Commands$(RESET)"
 	@echo ""
@@ -38,22 +57,33 @@ help: ## Show this help message
 	@echo "  uv add --dev <package>             # Add development dependency"
 
 install: ## Install Python dependencies
-	uv sync --extra dev
+	@if [ -n "$(UV_BIN)" ]; then \
+		uv sync --extra dev; \
+	else \
+		python3 -m venv .venv; \
+		.venv/bin/pip install --upgrade pip; \
+		.venv/bin/pip install -e .[dev]; \
+	fi
 
 run: ## Start Django development server
-	$(DJANGO_ENV) uv run python manage.py runserver
+	$(MAKE) ensure-python-tools
+	$(DJANGO_ENV) $(PYTHON_RUN) manage.py runserver
 
 migrate: ## Run Django migrations
-	$(DJANGO_ENV) uv run python manage.py migrate
+	$(MAKE) ensure-python-tools
+	$(DJANGO_ENV) $(PYTHON_RUN) manage.py migrate
 
 makemigrations: ## Create new Django migrations
-	$(DJANGO_ENV) uv run python manage.py makemigrations
+	$(MAKE) ensure-python-tools
+	$(DJANGO_ENV) $(PYTHON_RUN) manage.py makemigrations
 
 shell: ## Start Django shell
-	$(DJANGO_ENV) uv run python manage.py shell
+	$(MAKE) ensure-python-tools
+	$(DJANGO_ENV) $(PYTHON_RUN) manage.py shell
 
 test: ## Run Django tests
-	$(DJANGO_ENV) uv run python manage.py test
+	$(MAKE) ensure-python-tools
+	$(DJANGO_ENV) $(PYTHON_RUN) manage.py test
 
 test-all: ## Run all unit/integration tests
 	$(MAKE) check
@@ -61,41 +91,48 @@ test-all: ## Run all unit/integration tests
 	$(MAKE) e2e
 
 lint: ## Run code linter (ruff)
-	uv run ruff check .
-	uv run ruff format --check .
-	uv run black --check .
+	$(MAKE) ensure-python-tools
+	$(RUFF_RUN) check .
+	$(RUFF_RUN) format --check .
+	$(BLACK_RUN) --check .
 
 lint-all: lint ## Run all lint checks
 
 lint-fix: ## Run linter with auto-fix
-	uv run ruff check --fix .
+	$(MAKE) ensure-python-tools
+	$(RUFF_RUN) check --fix .
 
 format: ## Format code with black
-	uv run ruff format .
-	uv run black .
+	$(MAKE) ensure-python-tools
+	$(RUFF_RUN) format .
+	$(BLACK_RUN) .
 
 format-check: ## Check code formatting without making changes
-	uv run ruff format --check .
-	uv run black --check .
+	$(MAKE) ensure-python-tools
+	$(RUFF_RUN) format --check .
+	$(BLACK_RUN) --check .
 
 check: ## Run Django system checks
-	$(DJANGO_ENV) uv run python manage.py check
+	$(MAKE) ensure-python-tools
+	$(DJANGO_ENV) $(PYTHON_RUN) manage.py check
 
 status: ## Show project status and environment info
 	@echo "$(BLUE)Project Status:$(RESET)"
-	@echo "Python version: $$(uv run python --version)"
-	@echo "UV version: $$(uv --version)"
-	@echo "Django version: $$(uv run python -c 'import django; print(django.get_version())')"
+	@echo "Python version: $$($(PYTHON_RUN) --version)"
+	@echo "UV version: $$(if [ -n \"$(UV_BIN)\" ]; then uv --version; else echo \"not installed\"; fi)"
+	@echo "Django version: $$($(PYTHON_RUN) -c 'import django; print(django.get_version())')"
 	@echo "Virtual environment: $$(if [ -d .venv ]; then echo "✓ Active (.venv)"; else echo "✗ Not found"; fi)"
 	@echo "Dependencies: $$(if [ -f uv.lock ]; then echo "✓ Locked (uv.lock)"; else echo "✗ Not locked"; fi)"
 	@echo "Node.js: $$(if command -v node >/dev/null 2>&1; then echo "✓ $$(node --version)"; else echo "✗ Not installed"; fi)"
 	@echo "NPM packages: $$(if [ -d node_modules ]; then echo "✓ Installed"; else echo "✗ Not installed"; fi)"
 
 collectstatic: ## Collect static files
-	$(DJANGO_ENV) uv run python manage.py collectstatic --noinput
+	$(MAKE) ensure-python-tools
+	$(DJANGO_ENV) $(PYTHON_RUN) manage.py collectstatic --noinput
 
 superuser: ## Create Django superuser
-	$(DJANGO_ENV) uv run python manage.py createsuperuser
+	$(MAKE) ensure-python-tools
+	$(DJANGO_ENV) $(PYTHON_RUN) manage.py createsuperuser
 
 # Frontend commands
 frontend-install: ## Install Node.js dependencies
@@ -137,8 +174,9 @@ all: setup ## Setup everything and start development server
 qa: lint-fix format test check ## Run all quality checks and fixes
 
 e2e: frontend-build ## Run end-to-end checks (template render + server boot)
-	$(DJANGO_ENV) uv run python manage.py migrate
-	$(DJANGO_ENV) uv run python scripts/e2e_template_check.py
+	$(MAKE) ensure-python-tools
+	$(DJANGO_ENV) $(PYTHON_RUN) manage.py migrate
+	$(DJANGO_ENV) $(PYTHON_RUN) scripts/e2e_template_check.py
 	$(DJANGO_ENV) ./scripts/e2e_server_smoke.sh
 
 verify: ## Run the same lint, checks, tests, and e2e used in CI
