@@ -7,8 +7,12 @@
         A lean starter for Django 5, Vue 3, and modern JavaScript tooling.
       </p>
       <div class="actions">
-        <a href="https://vuejs.org/" target="_blank" rel="noreferrer">Vue docs</a>
-        <a href="https://vite.dev/" target="_blank" rel="noreferrer">Vite docs</a>
+        <a href="https://vuejs.org/" target="_blank" rel="noopener noreferrer"
+          >Vue docs</a
+        >
+        <a href="https://vite.dev/" target="_blank" rel="noopener noreferrer"
+          >Vite docs</a
+        >
       </div>
     </section>
   </main>
@@ -89,6 +93,13 @@ h1 {
 }
 
 .actions a:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(23, 49, 61, 0.14);
+}
+
+.actions a:focus-visible {
+  outline: 3px solid #0f6779;
+  outline-offset: 2px;
   transform: translateY(-1px);
   box-shadow: 0 10px 24px rgba(23, 49, 61, 0.14);
 }

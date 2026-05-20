@@ -160,7 +160,7 @@ make docker-build
 
 ## What's New
 
-- **Python 3.11+** required (upgraded from 3.10+, using Python 3.13.5)
+- **Python 3.11+** required (upgraded from 3.10+, CI uses Python 3.13)
 - **Django 5.1** (upgraded from 4.2)
 - **UV package manager** for faster dependency management
 - **Vite 6.x** build tool for fast dev server startup and lean production bundles
