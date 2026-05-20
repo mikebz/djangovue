@@ -104,7 +104,7 @@ Optional:
 - `DEBUG`: `1/true` for development mode, defaults to `0`.
 - `DATABASE_URL`: Database connection URL. Defaults to local SQLite.
 - `DB_CONN_MAX_AGE`: Database persistent connection age in seconds (default `60`).
-- `SECURE_SSL_REDIRECT`: Force HTTPS redirects (defaults to enabled when `DEBUG=0`).
+- `SECURE_SSL_REDIRECT`: Force HTTPS redirects (defaults to `0`, set to `1` in TLS-terminated production).
 - `DJANGO_VITE_DEV_MODE`: Enables Vite dev server mode.
 - `DJANGO_VITE_DEV_SERVER_HOST`: Vite host (default `127.0.0.1`).
 - `DJANGO_VITE_DEV_SERVER_PORT`: Vite port (default `3000`).
