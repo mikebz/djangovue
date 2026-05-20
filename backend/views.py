@@ -12,6 +12,6 @@ def index(request):
     return render(request, "index.html", context)
 
 
-def healthz(request):
+def healthz(_request):
     """Simple health endpoint for container readiness/liveness checks."""
     return JsonResponse({"status": "ok"})

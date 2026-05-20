@@ -1,5 +1,7 @@
 # Multi-stage build for Django + Vue.js application
-FROM node:22-alpine AS frontend-builder
+FROM cgr.dev/chainguard/node:latest-dev AS frontend-builder
+
+USER root
 
 # Set working directory
 WORKDIR /app
