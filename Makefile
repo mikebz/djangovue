@@ -50,7 +50,7 @@ makemigrations: ## Create new Django migrations
 	$(DJANGO_ENV) uv run python manage.py makemigrations
 
 shell: ## Start Django shell
-	uv run python manage.py shell
+	$(DJANGO_ENV) uv run python manage.py shell
 
 test: ## Run Django tests
 	$(DJANGO_ENV) uv run python manage.py test
@@ -92,14 +92,14 @@ status: ## Show project status and environment info
 	@echo "NPM packages: $$(if [ -d node_modules ]; then echo "✓ Installed"; else echo "✗ Not installed"; fi)"
 
 collectstatic: ## Collect static files
-	uv run python manage.py collectstatic --noinput
+	$(DJANGO_ENV) uv run python manage.py collectstatic --noinput
 
 superuser: ## Create Django superuser
-	uv run python manage.py createsuperuser
+	$(DJANGO_ENV) uv run python manage.py createsuperuser
 
 # Frontend commands
 frontend-install: ## Install Node.js dependencies
-	npm install
+	npm ci
 
 frontend-dev: ## Start Vite development server
 	npm run dev
@@ -136,7 +136,7 @@ all: setup ## Setup everything and start development server
 # Quality assurance
 qa: lint-fix format test check ## Run all quality checks and fixes
 
-e2e: ## Run end-to-end checks (template render + server boot)
+e2e: frontend-build ## Run end-to-end checks (template render + server boot)
 	$(DJANGO_ENV) uv run python manage.py migrate
 	$(DJANGO_ENV) uv run python scripts/e2e_template_check.py
 	$(DJANGO_ENV) ./scripts/e2e_server_smoke.sh
