@@ -1,10 +1,8 @@
 # djangovue
 ![Vue.js Logo](https://github.com/mikebz/djangovue/raw/master/frontend/img/logo.png "Vue.js")
 
-This is a starter project for Django with Vue.js.  I fell in love with the readability you get in Vue.js and
-decided to create a project where all components are laid out in the most readable way.
-
-The frontend uses Vue 3 + Vite, and the backend uses Django 5 with environment-driven settings.
+This is a starter project for Django with Vue.js. The frontend uses Vue 3 + Vite, and the backend uses
+Django 5 with environment-driven settings.
 
 ## ⚡ Modern Package Management (UV)
 
@@ -53,7 +51,10 @@ uv run python manage.py runserver
 make run
 ```
 
-At this point you should be able to navigate to localhost:8000 and see a template rendered.
+At this point you should be able to navigate to localhost:8000 and see the starter page render.
+
+If you are coming from a webpack-based workflow, note that this project does not use Babel or webpack.
+Vite handles the frontend build, and the `make` targets mirror the same commands used in CI.
 
 ## 🛠️ Development Commands
 
@@ -157,12 +158,12 @@ make prod-build
 make docker-build
 ```
 
-## �📦 What's New
+## What's New
 
-- **Python 3.11+** required (upgraded from 3.10+, using Python 3.13.5)
+- **Python 3.11+** required (upgraded from 3.10+, CI uses Python 3.13)
 - **Django 5.1** (upgraded from 4.2)
 - **UV package manager** for faster dependency management
-- **Vite 6.x** build tool (replaced Webpack 3.x) - 50x faster dev server
+- **Vite 6.x** build tool for fast dev server startup and lean production bundles
 - **Vue 3.5** (upgraded from Vue 2.x, latest Vue with Composition API)
 - **Hot Module Replacement (HMR)** for instant development feedback
 - **Modern linting** with Ruff (replaces pylint)
@@ -186,6 +187,7 @@ If you're upgrading from the old setup:
 - **Automated security scanning** monitors for vulnerabilities
 
 ## Sources
-This only worked because people before me created some wonderful examples.
-- https://github.com/djstein/vue-django-webpack
-- https://github.com/ezhome/django-webpack-loader
+This project builds on the Django, Vue, and Vite ecosystems.
+- https://vuejs.org/
+- https://vite.dev/
+- https://docs.djangoproject.com/
