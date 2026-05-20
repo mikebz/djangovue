@@ -37,7 +37,7 @@ set +a
 
 5. Install JavaScript dependencies and build
 ```bash
-npm install
+npm ci
 npm run build
 ```
 
@@ -110,7 +110,7 @@ Optional:
 - `DJANGO_VITE_DEV_SERVER_HOST`: Vite host (default `127.0.0.1`).
 - `DJANGO_VITE_DEV_SERVER_PORT`: Vite port (default `3000`).
 
-## � CI/CD & Deployment
+## CI/CD & Deployment
 
 ### GitHub Actions Workflows
 

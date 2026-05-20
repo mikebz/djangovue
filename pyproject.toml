@@ -49,9 +49,6 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["djangovue", "backend"]
 
-[tool.ruff.lint.per-file-ignores]
-"manage.py" = ["F401", "B904"]
-
 [tool.black]
 line-length = 88
 target-version = ['py313']

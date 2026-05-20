@@ -1,5 +1,5 @@
 # Multi-stage build for Django + Vue.js application
-FROM cgr.dev/chainguard/node:latest-dev AS frontend-builder
+FROM cgr.dev/chainguard/node:latest-dev@sha256:f9949d26d61c5fc46cf247f082d0e2b0ec352ba75b102524efadcf0db454520b AS frontend-builder
 
 USER root
 
