@@ -1,4 +1,5 @@
-from django.test import Client, TestCase
+from django.core.exceptions import ImproperlyConfigured
+from django.test import Client, SimpleTestCase, TestCase
 
 from djangovue import settings as project_settings
 
@@ -117,7 +118,7 @@ class ViteIntegrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
-class HealthEndpointTest(TestCase):
+class HealthEndpointTest(SimpleTestCase):
     """Test health endpoint behavior used by container checks."""
 
     def test_healthz_returns_ok_json(self):
@@ -126,7 +127,7 @@ class HealthEndpointTest(TestCase):
         self.assertEqual(response.json(), {"status": "ok"})
 
 
-class SettingsHelpersTest(TestCase):
+class SettingsHelpersTest(SimpleTestCase):
     """Test environment parsing helpers used by project settings."""
 
     def test_get_env_bool_defaults_when_missing(self):
@@ -142,3 +143,21 @@ class SettingsHelpersTest(TestCase):
             project_settings.get_env_list("ALLOWED_HOSTS", environ=environ),
             ["example.com", "api.example.com"],
         )
+
+    def test_get_env_int_uses_default(self):
+        self.assertEqual(
+            project_settings.get_env_int("DB_CONN_MAX_AGE", default=60, environ={}),
+            60,
+        )
+
+    def test_get_env_int_parses_integer(self):
+        environ = {"DB_CONN_MAX_AGE": "120"}
+        self.assertEqual(
+            project_settings.get_env_int("DB_CONN_MAX_AGE", default=0, environ=environ),
+            120,
+        )
+
+    def test_get_env_int_raises_for_invalid_value(self):
+        environ = {"DB_CONN_MAX_AGE": "not-a-number"}
+        with self.assertRaises(ImproperlyConfigured):
+            project_settings.get_env_int("DB_CONN_MAX_AGE", default=60, environ=environ)

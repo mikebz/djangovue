@@ -51,7 +51,7 @@ COPY . .
 COPY --from=frontend-builder /app/frontend/dist/ ./frontend/dist/
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
+RUN SECRET_KEY=docker-build-only-secret python manage.py collectstatic --noinput
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser && \

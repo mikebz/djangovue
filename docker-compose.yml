@@ -11,7 +11,7 @@ services:
       - /app/.venv
     environment:
       - SECRET_KEY=dev-secret-key-change-me
-      - DEBUG=0
+      - DEBUG=1
       - ALLOWED_HOSTS=localhost,127.0.0.1
       - DJANGO_SETTINGS_MODULE=djangovue.settings
     command: >

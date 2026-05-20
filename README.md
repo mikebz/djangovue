@@ -1,7 +1,7 @@
 # djangovue
 ![Vue.js Logo](https://github.com/mikebz/djangovue/raw/master/frontend/img/logo.png "Vue.js")
 
-This is a starter project for Django with Vue.js.  I fell in love with the readability you get in Vue.js and 
+This is a starter project for Django with Vue.js.  I fell in love with the readability you get in Vue.js and
 decided to create a project where all components are laid out in the most readable way.
 
 The frontend uses Vue 3 + Vite, and the backend uses Django 5 with environment-driven settings.
@@ -30,9 +30,9 @@ uv sync --extra dev
 4. Configure environment variables
 ```bash
 cp .env.example .env
-export SECRET_KEY='replace-this-for-local-dev'
-export DEBUG=1
-export ALLOWED_HOSTS='localhost,127.0.0.1'
+set -a
+source .env
+set +a
 ```
 
 5. Install JavaScript dependencies and build
@@ -89,7 +89,7 @@ npm run preview          # Preview production build
 ### Using UV directly:
 ```bash
 uv run python manage.py <command>     # Run Django commands
-uv add <package>                      # Add production dependency  
+uv add <package>                      # Add production dependency
 uv add --dev <package>                # Add development dependency
 uv sync                               # Install dependencies
 ```
@@ -105,6 +105,7 @@ Optional:
 - `DATABASE_URL`: Database connection URL. Defaults to local SQLite.
 - `DB_CONN_MAX_AGE`: Database persistent connection age in seconds (default `60`).
 - `SECURE_SSL_REDIRECT`: Force HTTPS redirects (defaults to `0`, set to `1` in TLS-terminated production).
+- `USE_X_FORWARDED_PROTO`: Trust `X-Forwarded-Proto` from a controlled reverse proxy (default `0`).
 - `DJANGO_VITE_DEV_MODE`: Enables Vite dev server mode.
 - `DJANGO_VITE_DEV_SERVER_HOST`: Vite host (default `127.0.0.1`).
 - `DJANGO_VITE_DEV_SERVER_PORT`: Vite port (default `3000`).

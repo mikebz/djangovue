@@ -28,6 +28,20 @@ def get_env_list(name, *, default=None, environ=None):
     return [item.strip() for item in raw_value.split(",") if item.strip()]
 
 
+def get_env_int(name, *, default, environ=None):
+    """Return an environment variable as an integer."""
+    env = os.environ if environ is None else environ
+    raw_value = env.get(name)
+    if raw_value is None:
+        return default
+    try:
+        return int(raw_value)
+    except ValueError as exc:
+        raise ImproperlyConfigured(
+            f"{name} must be an integer, got {raw_value!r}"
+        ) from exc
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
@@ -100,7 +114,7 @@ WSGI_APPLICATION = "djangovue.wsgi.application"
 DATABASES = {
     "default": dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+        conn_max_age=get_env_int("DB_CONN_MAX_AGE", default=60),
     )
 }
 
@@ -147,7 +161,10 @@ STATICFILES_DIRS = [
     BASE_DIR / "frontend" / "dist",
 ]
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_PROTO = get_env_bool("USE_X_FORWARDED_PROTO", default=False)
+SECURE_PROXY_SSL_HEADER = (
+    ("HTTP_X_FORWARDED_PROTO", "https") if USE_X_FORWARDED_PROTO else None
+)
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_SSL_REDIRECT = get_env_bool("SECURE_SSL_REDIRECT", default=False)
@@ -157,7 +174,7 @@ DJANGO_VITE = {
     "default": {
         "dev_mode": get_env_bool("DJANGO_VITE_DEV_MODE", default=False),
         "dev_server_host": os.environ.get("DJANGO_VITE_DEV_SERVER_HOST", "127.0.0.1"),
-        "dev_server_port": int(os.environ.get("DJANGO_VITE_DEV_SERVER_PORT", "3000")),
+        "dev_server_port": get_env_int("DJANGO_VITE_DEV_SERVER_PORT", default=3000),
         "manifest_path": str(
             BASE_DIR / "frontend" / "dist" / ".vite" / "manifest.json"
         ),
