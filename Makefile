@@ -61,22 +61,22 @@ test-all: ## Run all unit/integration tests
 	$(MAKE) e2e
 
 lint: ## Run code linter (ruff)
-	uv run ruff check backend/ djangovue/
-	uv run ruff format --check backend/ djangovue/
-	uv run black --check backend/ djangovue/
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run black --check .
 
 lint-all: lint ## Run all lint checks
 
 lint-fix: ## Run linter with auto-fix
-	uv run ruff check --fix backend/ djangovue/
+	uv run ruff check --fix .
 
 format: ## Format code with black
-	uv run ruff format backend/ djangovue/
-	uv run black backend/ djangovue/
+	uv run ruff format .
+	uv run black .
 
 format-check: ## Check code formatting without making changes
-	uv run ruff format --check backend/ djangovue/
-	uv run black --check backend/ djangovue/
+	uv run ruff format --check .
+	uv run black --check .
 
 check: ## Run Django system checks
 	$(DJANGO_ENV) uv run python manage.py check
