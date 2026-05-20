@@ -1,7 +1,8 @@
 # Makefile for djangovue project
 # Uses UV for Python package management
 
-.PHONY: help install run migrate shell test lint format check clean setup frontend all
+.PHONY: help install run migrate shell test test-all lint lint-all format format-check check clean setup frontend all
+.PHONY: ci-install-python ci-install-frontend ci-lint-python ci-test-python ci-test-integration ci-frontend-build
 
 # Default target
 .DEFAULT_GOAL := help
@@ -12,6 +13,13 @@ GREEN := \033[32m
 YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
+
+# Default Django env values for local commands.
+# CI can override these values via workflow env blocks.
+SECRET_KEY ?= dev-secret-key-change-me
+DEBUG ?= 1
+ALLOWED_HOSTS ?= localhost,127.0.0.1
+DJANGO_ENV := SECRET_KEY="$(SECRET_KEY)" DEBUG="$(DEBUG)" ALLOWED_HOSTS="$(ALLOWED_HOSTS)"
 
 help: ## Show this help message
 	@echo "$(BLUE)Django + Vue Development Commands$(RESET)"
@@ -36,15 +44,15 @@ install: ## Install Python dependencies
 
 run: ## Start Django development server
 	@echo "$(BLUE)Starting Django development server...$(RESET)"
-	uv run python manage.py runserver
+	$(DJANGO_ENV) uv run python manage.py runserver
 
 migrate: ## Run Django migrations
 	@echo "$(BLUE)Running Django migrations...$(RESET)"
-	uv run python manage.py migrate
+	$(DJANGO_ENV) uv run python manage.py migrate
 
 makemigrations: ## Create new Django migrations
 	@echo "$(BLUE)Creating Django migrations...$(RESET)"
-	uv run python manage.py makemigrations
+	$(DJANGO_ENV) uv run python manage.py makemigrations
 
 shell: ## Start Django shell
 	@echo "$(BLUE)Starting Django shell...$(RESET)"
@@ -52,11 +60,21 @@ shell: ## Start Django shell
 
 test: ## Run Django tests
 	@echo "$(BLUE)Running tests...$(RESET)"
-	uv run python manage.py test
+	$(DJANGO_ENV) uv run python manage.py test
+
+test-all: ## Run all tests used in CI
+	@echo "$(BLUE)Running full test suite...$(RESET)"
+	$(MAKE) ci-test-python
+	$(MAKE) ci-test-integration
 
 lint: ## Run code linter (ruff)
 	@echo "$(BLUE)Running linter...$(RESET)"
 	uv run ruff check backend/ djangovue/
+	uv run ruff format --check backend/ djangovue/
+	uv run black --check backend/ djangovue/
+
+lint-all: lint ## Run all lint checks
+	@echo "$(GREEN)Lint checks passed!$(RESET)"
 
 lint-fix: ## Run linter with auto-fix
 	@echo "$(BLUE)Running linter with auto-fix...$(RESET)"
@@ -64,15 +82,17 @@ lint-fix: ## Run linter with auto-fix
 
 format: ## Format code with black
 	@echo "$(BLUE)Formatting code...$(RESET)"
+	uv run ruff format backend/ djangovue/
 	uv run black backend/ djangovue/
 
 format-check: ## Check code formatting without making changes
 	@echo "$(BLUE)Checking code formatting...$(RESET)"
+	uv run ruff format --check backend/ djangovue/
 	uv run black --check backend/ djangovue/
 
 check: ## Run Django system checks
 	@echo "$(BLUE)Running Django system checks...$(RESET)"
-	uv run python manage.py check
+	$(DJANGO_ENV) uv run python manage.py check
 
 status: ## Show project status and environment info
 	@echo "$(BLUE)Project Status:$(RESET)"
@@ -147,6 +167,57 @@ all: setup ## Setup everything and start development server
 # Quality assurance
 qa: lint-fix format test check ## Run all quality checks and fixes
 	@echo "$(GREEN)All quality checks passed!$(RESET)"
+
+# CI targets (single source of truth for workflows)
+ci-install-python: ## Install Python dependencies for CI
+	uv sync --extra dev
+
+ci-install-frontend: ## Install frontend dependencies for CI
+	npm ci
+
+ci-frontend-build: ## Build frontend assets and verify manifest
+	npm run build
+	@if [ ! -d "frontend/dist" ]; then \
+		echo "Frontend build failed - no dist directory found"; \
+		exit 1; \
+	fi
+	@if [ ! -f "frontend/dist/.vite/manifest.json" ]; then \
+		echo "Frontend build failed - no manifest.json found"; \
+		exit 1; \
+	fi
+
+ci-lint-python: ## Run Python lint and format checks for CI
+	uv run ruff check backend/ djangovue/
+	uv run ruff format --check backend/ djangovue/
+	uv run black --check backend/ djangovue/
+
+ci-test-python: ## Run Django checks and test suite for CI
+	$(DJANGO_ENV) uv run python manage.py check
+	$(DJANGO_ENV) uv run python manage.py test
+
+ci-test-integration: ## Run Django integration checks used in CI
+	$(DJANGO_ENV) uv run python manage.py migrate
+	$(DJANGO_ENV) uv run python -c "\
+import os; \
+import django; \
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangovue.settings'); \
+django.setup(); \
+from django.template.loader import render_to_string; \
+result = render_to_string('index.html', {}); \
+print('Template rendered successfully'); \
+print('Length:', len(result), 'characters'); \
+assert 'Vue.js App' in result, 'Template missing Vue.js App title'; \
+assert '<div id=\"app\">' in result, 'Template missing Vue.js mount point'; \
+assert '.js' in result, 'Template missing JavaScript bundle'; \
+print('All template assertions passed')\
+"
+	@# Start Django server in background, verify it responds, then stop it.
+	@$(DJANGO_ENV) uv run python manage.py runserver 127.0.0.1:8000 >/tmp/djangovue-ci-server.log 2>&1 & \
+	SERVER_PID=$$!; \
+	sleep 5; \
+	curl -f http://127.0.0.1:8000/ >/dev/null || (echo "Server not responding"; kill $$SERVER_PID; exit 1); \
+	kill $$SERVER_PID; \
+	echo "Development server test passed"
 
 # Production commands
 prod-build: install frontend-build collectstatic ## Build for production
