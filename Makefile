@@ -1,130 +1,87 @@
 # Makefile for djangovue project
-# Uses UV for Python package management
+# Uses uv for Python package management
 
-.PHONY: help install run migrate shell test test-all e2e lint lint-all format format-check check verify clean setup frontend all
+.PHONY: help install run migrate makemigrations shell test e2e lint lint-fix format check typecheck verify clean setup frontend-install frontend-dev frontend-watch frontend-preview collectstatic superuser clean-all frontend-build prod-build docker-build docker-run docker-dev status
 
-# Default target
 .DEFAULT_GOAL := help
 
-# Colors for output
-BLUE := \033[34m
-GREEN := \033[32m
-YELLOW := \033[33m
-RED := \033[31m
-RESET := \033[0m
-
-# Load defaults from .env.example, then let .env override when present.
-# Neither file is ever created as a side effect.
 ENV_FILES := .env.example $(wildcard .env)
 -include $(ENV_FILES)
 
-# Export all KEY=VALUE entries found in loaded env files.
 ENV_KEYS := $(shell sed -nE 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' $(ENV_FILES) | sort -u)
 export $(ENV_KEYS)
 
 ensure-python-tools:
-	@if command -v uv >/dev/null 2>&1; then \
-		exit 0; \
-	else \
-		echo "uv is required to run Python commands in this project." >&2; \
-		echo "Install uv: https://docs.astral.sh/uv/getting-started/installation/" >&2; \
-		exit 1; \
-	fi
+	@command -v uv >/dev/null 2>&1 || { echo "Install uv: https://docs.astral.sh/uv/getting-started/installation/" >&2; exit 1; }
 
 help: ## Show this help message
-	@echo "$(BLUE)Django + Vue Development Commands$(RESET)"
-	@echo ""
-	@echo "$(GREEN)Python/Django:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-12s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(install|run|migrate|shell|test|lint|format|check|clean|setup|status)"
-	@echo ""
-	@echo "$(GREEN)Frontend:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-12s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(frontend-|build|watch|preview)"
-	@echo ""
-	@echo "$(GREEN)Compound commands:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-12s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(all|dev)"
-	@echo ""
-	@echo "$(BLUE)UV Commands:$(RESET)"
-	@echo "  uv run python manage.py <command>  # Run Django commands"
-	@echo "  uv add <package>                   # Add production dependency"
-	@echo "  uv add --dev <package>             # Add development dependency"
+	@printf "Django + Vue commands\n\n"
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
-install: ## Install Python dependencies
-	$(MAKE) ensure-python-tools
+install: ensure-python-tools ## Install Python dependencies
 	uv sync --extra dev
 
-run: ## Start Django development server
-	$(MAKE) ensure-python-tools
-	uv run python manage.py runserver
+run: export DJANGO_VITE_DEV_MODE := 0
+run: ensure-python-tools frontend-build ## Start Django with built frontend assets on a single port
+	uv run python manage.py runserver 0.0.0.0:8000
 
-migrate: ## Run Django migrations
-	$(MAKE) ensure-python-tools
+migrate: ensure-python-tools ## Run Django migrations
 	uv run python manage.py migrate
 
-makemigrations: ## Create new Django migrations
-	$(MAKE) ensure-python-tools
+makemigrations: ensure-python-tools ## Create new Django migrations
 	uv run python manage.py makemigrations
 
-shell: ## Start Django shell
-	$(MAKE) ensure-python-tools
+shell: ensure-python-tools ## Start Django shell
 	uv run python manage.py shell
 
-test: ## Run Django tests
-	$(MAKE) ensure-python-tools
+test: ensure-python-tools ## Run Django tests
 	uv run python manage.py test
 
-test e2e: export DJANGO_VITE_DEV_MODE := 0
+e2e: export DJANGO_VITE_DEV_MODE := 0
+e2e: ensure-python-tools frontend-build ## Run end-to-end checks (template render + server boot)
+	uv run python manage.py migrate
+	uv run python scripts/e2e_template_check.py
+	./scripts/e2e_server_smoke.sh
 
-test-all: ## Run all unit/integration tests
-	$(MAKE) check
-	$(MAKE) test
-	$(MAKE) e2e
-
-lint: ## Run code linter (ruff)
-	$(MAKE) ensure-python-tools
+lint: ensure-python-tools ## Run code linter (ruff)
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run black --check .
 
-lint-all: lint ## Run all lint checks
-
-lint-fix: ## Run linter with auto-fix
-	$(MAKE) ensure-python-tools
+lint-fix: ensure-python-tools ## Run linter with auto-fix
 	uv run ruff check --fix .
 
-format: ## Format code with black
-	$(MAKE) ensure-python-tools
+format: ensure-python-tools ## Format code with black
 	uv run ruff format .
 	uv run black .
 
-format-check: ## Check code formatting without making changes
-	$(MAKE) ensure-python-tools
-	uv run ruff format --check .
-	uv run black --check .
-
-check: ## Run Django system checks
-	$(MAKE) ensure-python-tools
+check: ensure-python-tools ## Run Django system checks
 	uv run python manage.py check
 
-typecheck: ## Run static type checking with mypy
-	$(MAKE) ensure-python-tools
+typecheck: ensure-python-tools ## Run static type checking with mypy
 	uv run python -m mypy
 
-status: ## Show project status and environment info
-	@echo "$(BLUE)Project Status:$(RESET)"
+verify: ## Run lint, checks, tests, and e2e used in CI
+	$(MAKE) lint
+	$(MAKE) typecheck
+	$(MAKE) check
+	$(MAKE) test
+	$(MAKE) e2e
+
+status: ensure-python-tools ## Show project status and environment info
+	@echo "Project status"
 	@echo "Python version: $$(uv run python --version)"
 	@echo "UV version: $$(uv --version)"
 	@echo "Django version: $$(uv run python -c 'import django; print(django.get_version())')"
-	@echo "Virtual environment: $$(if [ -d .venv ]; then echo "✓ Present (.venv)"; else echo "✗ Not found"; fi)"
-	@echo "Dependencies: $$(if [ -f uv.lock ]; then echo "✓ Locked (uv.lock)"; else echo "✗ Not locked"; fi)"
-	@echo "Node.js: $$(if command -v node >/dev/null 2>&1; then echo "✓ $$(node --version)"; else echo "✗ Not installed"; fi)"
-	@echo "NPM packages: $$(if [ -d node_modules ]; then echo "✓ Installed"; else echo "✗ Not installed"; fi)"
+	@echo "Virtual environment: $$(test -d .venv && echo present || echo missing)"
+	@echo "Dependencies: $$(test -f uv.lock && echo locked || echo missing)"
+	@echo "Node.js: $$(command -v node >/dev/null 2>&1 && node --version || echo missing)"
+	@echo "NPM packages: $$(test -d node_modules && echo installed || echo missing)"
 
-collectstatic: ## Collect static files
-	$(MAKE) ensure-python-tools
+collectstatic: ensure-python-tools ## Collect static files
 	uv run python manage.py collectstatic --noinput
 
-superuser: ## Create Django superuser
-	$(MAKE) ensure-python-tools
+superuser: ensure-python-tools ## Create Django superuser
 	uv run python manage.py createsuperuser
 
 # Frontend commands
@@ -156,41 +113,18 @@ clean-all: clean ## Clean everything including dependencies
 # Development setup
 setup: install frontend-install migrate ## Initial project setup
 
-dev: migrate frontend-build ## Prepare for development
-
-dev-full: frontend-build run ## Build frontend and start Django server
-
-all: setup ## Setup everything and start development server
-	make run
-
-# Quality assurance
-qa: lint-fix format test check ## Run all quality checks and fixes
-
-e2e: frontend-build ## Run end-to-end checks (template render + server boot)
-	$(MAKE) ensure-python-tools
-	uv run python manage.py migrate
-	uv run python scripts/e2e_template_check.py
-	./scripts/e2e_server_smoke.sh
-
-verify: ## Run the same lint, checks, tests, and e2e used in CI
-	$(MAKE) lint
-	$(MAKE) typecheck
-	$(MAKE) check
-	$(MAKE) test
-	$(MAKE) e2e
-
+# Production commands
 frontend-build: ## Build frontend for production
 	npm run build
-	if [ ! -d "frontend/dist" ]; then \
+	@if [ ! -d "frontend/dist" ]; then \
 		echo "Frontend build failed - no dist directory found"; \
 		exit 1; \
 	fi
-	if [ ! -f "frontend/dist/.vite/manifest.json" ]; then \
+	@if [ ! -f "frontend/dist/.vite/manifest.json" ]; then \
 		echo "Frontend build failed - no manifest.json found"; \
 		exit 1; \
 	fi
 
-# Production commands
 prod-build: install frontend-build collectstatic ## Build for production
 
 docker-build: ## Build Docker image

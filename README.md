@@ -55,10 +55,13 @@ uv run python manage.py runserver
 make run
 ```
 
-At this point you should be able to navigate to localhost:8000 and see the starter page render.
+`make run` builds the frontend and serves the app on `localhost:8000`, which is
+the easiest path when you are using a forwarded port.
 
-If you are coming from a webpack-based workflow, note that this project does not use Babel or webpack.
-Vite handles the frontend build, and the `make` targets mirror the same commands used in CI.
+If you want hot module replacement instead, start the Vite dev server with
+`make frontend-dev` and forward port `3000` too.
+
+This project uses Vite for the frontend build, and the `make` targets mirror the same commands used in CI.
 
 ## 🛠️ Development Commands
 
@@ -66,14 +69,13 @@ Vite handles the frontend build, and the `make` targets mirror the same commands
 ```bash
 make help           # Show all available commands
 make setup          # Initial project setup (install deps + migrate)
-make dev            # Prepare for development
-make run            # Start development server
+make run            # Build frontend and start Django on one port
 make migrate        # Run migrations
 make test           # Run tests
 make lint           # Run code linter (ruff)
 make format         # Format code (black)
 make check          # Run Django system checks
-make qa             # Run all quality checks and fixes
+make verify         # Run lint, checks, tests, and e2e
 ```
 
 ### Frontend commands:
@@ -153,7 +155,7 @@ The production container now serves Django through Gunicorn and exposes a health
 
 ```bash
 # Run all quality checks
-make qa
+make verify
 
 # Build production assets
 make prod-build
