@@ -35,8 +35,9 @@ source .env
 set +a
 ```
 
-If you skip this step, the Makefile will load `.env.example` as a fallback so
-`make run`, `make test`, and other commands still work with the example defaults.
+The Makefile always loads `.env.example` defaults and then applies `.env`
+overrides when present, exporting those env-driven Django/Vite settings for
+local commands.
 
 5. Install JavaScript dependencies and build
 ```bash

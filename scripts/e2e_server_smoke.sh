@@ -6,6 +6,12 @@ PORT="${2:-8000}"
 URL="http://${HOST}:${PORT}/"
 LOG_FILE="${3:-/tmp/djangovue-e2e-server.log}"
 
+if ! command -v uv >/dev/null 2>&1; then
+  echo "uv is required to run the server smoke test." >&2
+  echo "Install uv: https://docs.astral.sh/uv/getting-started/installation/" >&2
+  exit 1
+fi
+
 uv run python manage.py runserver "${HOST}:${PORT}" >"${LOG_FILE}" 2>&1 &
 SERVER_PID=$!
 
