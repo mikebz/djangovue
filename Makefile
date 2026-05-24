@@ -34,9 +34,6 @@ makemigrations: ensure-python-tools ## Create new Django migrations
 shell: ensure-python-tools ## Start Django shell
 	uv run python manage.py shell
 
-test: ensure-python-tools ## Run Django tests
-	uv run python manage.py test
-
 e2e: export DJANGO_VITE_DEV_MODE := 0
 e2e: ensure-python-tools frontend-build ## Run end-to-end checks (template render + server boot)
 	uv run python manage.py migrate
@@ -55,11 +52,16 @@ format: ensure-python-tools ## Format code with black
 	uv run ruff format .
 	uv run black .
 
+check: export DJANGO_VITE_DEV_MODE := 0
 check: ensure-python-tools ## Run Django system checks
 	uv run python manage.py check
 
 typecheck: ensure-python-tools ## Run static type checking with mypy
 	uv run python -m mypy
+
+test: export DJANGO_VITE_DEV_MODE := 0
+test: ensure-python-tools ## Run Django tests
+	uv run python manage.py test
 
 verify: ## Run lint, checks, tests, and e2e used in CI
 	$(MAKE) lint
