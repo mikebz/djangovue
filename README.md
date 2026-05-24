@@ -33,6 +33,10 @@ source .env
 set +a
 ```
 
+The Makefile always loads `.env.example` defaults and then applies `.env`
+overrides when present, exporting those env-driven Django/Vite settings for
+local commands.
+
 5. Install JavaScript dependencies and build
 ```bash
 npm ci
