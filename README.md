@@ -35,6 +35,9 @@ source .env
 set +a
 ```
 
+If you skip this step, the Makefile will load `.env.example` as a fallback so
+`make run`, `make test`, and other commands still work with the example defaults.
+
 5. Install JavaScript dependencies and build
 ```bash
 npm ci

@@ -13,12 +13,17 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-# Default Django env values for local commands.
+# Load .env when present; otherwise fall back to .env.example.
+# Neither file is ever created as a side effect.
+ENV_FILE := $(or $(wildcard .env),.env.example)
+-include $(ENV_FILE)
+
+# Default Django env values for local commands if not defined in .env.
 # CI can override these values via workflow env blocks.
 SECRET_KEY ?= dev-secret-key-change-me
 DEBUG ?= 1
 ALLOWED_HOSTS ?= localhost,127.0.0.1
-DJENV := SECRET_KEY=$(SECRET_KEY) DEBUG=$(DEBUG) ALLOWED_HOSTS=$(ALLOWED_HOSTS)
+export SECRET_KEY DEBUG ALLOWED_HOSTS
 
 UV_BIN := $(shell command -v uv 2>/dev/null)
 ifeq ($(UV_BIN),)
@@ -33,7 +38,7 @@ endif
 
 MYPY_RUN := $(PRUN) -m mypy
 
-DJMANAGE := $(DJENV) $(PRUN) manage.py
+DJMANAGE := $(PRUN) manage.py
 
 ensure-python-tools:
 	@if [ -n "$(UV_BIN)" ] || [ -x .venv/bin/python ]; then \
@@ -188,8 +193,8 @@ qa: lint-fix format test check ## Run all quality checks and fixes
 e2e: frontend-build ## Run end-to-end checks (template render + server boot)
 	$(MAKE) ensure-python-tools
 	$(DJMANAGE) migrate
-	$(DJENV) $(PRUN) scripts/e2e_template_check.py
-	$(DJENV) ./scripts/e2e_server_smoke.sh
+	$(PRUN) scripts/e2e_template_check.py
+	./scripts/e2e_server_smoke.sh
 
 verify: ## Run the same lint, checks, tests, and e2e used in CI
 	$(MAKE) lint
