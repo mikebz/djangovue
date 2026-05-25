@@ -4,6 +4,18 @@
 This is a starter project for Django with Vue.js. The frontend uses Vue 3 + Vite, and the backend uses
 Django 5 with environment-driven settings.
 
+## Why this starter in 2026?
+
+If you are starting a new web product in 2026, this stack is a pragmatic default:
+
+- Fast path to production: Django gives you auth, admin, migrations, ORM, and security defaults without adding a large backend framework surface area.
+- Modern frontend workflow: Vue 3 + Vite keeps local feedback fast, while production assets stay lean and easy to deploy.
+- Fewer moving pieces: one backend service, one frontend build pipeline, and a single repository with consistent local and CI commands.
+- Better dependency ergonomics: UV makes Python environments and locking much faster and more reproducible than older pip-based workflows.
+- CI-ready from day one: linting, tests, security checks, and integration checks are already wired into GitHub Actions.
+
+This template is especially useful for teams that want to ship quickly without committing to a complex microservice or full-SPA infrastructure upfront.
+
 ## ⚡ Modern Package Management (UV)
 
 This project now uses [UV](https://github.com/astral-sh/uv) for fast, reliable Python package management instead of pip.
@@ -170,21 +182,12 @@ make prod-build
 make docker-build
 ```
 
-## What's New
+## Why this framework choice still holds up
 
-- **Python 3.11+** required (upgraded from 3.10+, CI uses Python 3.13)
-- **Django 5.1** (upgraded from 4.2)
-- **UV package manager** for faster dependency management
-- **Vite 6.x** build tool for fast dev server startup and lean production bundles
-- **Vue 3.5** (upgraded from Vue 2.x, latest Vue with Composition API)
-- **Hot Module Replacement (HMR)** for instant development feedback
-- **Modern linting** with Ruff (replaces pylint)
-- **Code formatting** with Black
-- **Improved URL patterns** (modern Django path() syntax)
-- **Makefile** for development automation
-- **GitHub Actions CI/CD** with comprehensive testing
-- **Docker support** for containerized deployment
-- **Automated dependency updates** and security monitoring
+- **Django + Vue remains a strong split**: backend-rendered pages and APIs on Django, interactive UI on Vue, without overengineering routing or deployment.
+- **Vite replaced legacy bundler complexity**: builds are fast and predictable, and local iteration is much smoother than older webpack-era setups.
+- **Strong defaults with room to grow**: start with SQLite and one service, then move to Postgres, workers, and CDN/static hosting patterns when needed.
+- **Tooling stays current**: Python 3.11+, Django 5.1, Vue 3.5, Vite 6, Ruff, Black, mypy, Docker, and CI automation are already integrated.
 
 ## 📝 Migration Notes
 
