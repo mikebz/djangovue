@@ -55,8 +55,14 @@ uv run python manage.py runserver
 make run
 ```
 
-`make run` builds the frontend and serves the app on `localhost:8000`, which is
-the easiest path when you are using a forwarded port.
+`make run` builds the frontend and starts Django on `0.0.0.0:8000` so the app
+is reachable through port forwarding.
+
+If you are running in a dev container or Codespaces, open the forwarded port URL
+from the VS Code Ports tab. Host-browser `localhost:8000` may point at your own
+machine instead of the container.
+
+From inside the container, the app is available at `http://127.0.0.1:8000/`.
 
 If you want hot module replacement instead, start the Vite dev server with
 `make frontend-dev` and forward port `3000` too.

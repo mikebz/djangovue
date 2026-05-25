@@ -23,6 +23,9 @@ install: ensure-python-tools ## Install Python dependencies
 
 run: export DJANGO_VITE_DEV_MODE := 0
 run: ensure-python-tools frontend-build ## Start Django with built frontend assets on a single port
+	@echo "Django binds to 0.0.0.0:8000."
+	@echo "In a dev container or Codespaces, open the forwarded port URL from the Ports tab."
+	@echo "From inside the container, the app is available at http://127.0.0.1:8000/."
 	uv run python manage.py runserver 0.0.0.0:8000
 
 migrate: ensure-python-tools ## Run Django migrations
