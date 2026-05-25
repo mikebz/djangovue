@@ -2,7 +2,7 @@
   <main class="app-shell">
     <section class="hero">
       <p class="eyebrow">Django + Vue</p>
-      <h1>Build with Vite, not webpack.</h1>
+      <h1>Quick start to get your web app going by Mike Borozdin (@mikebz)</h1>
       <p class="lede">
         A lean starter for Django 5, Vue 3, and modern JavaScript tooling.
       </p>
