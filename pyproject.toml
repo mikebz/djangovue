@@ -7,14 +7,18 @@ authors = [
 ]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
-    "django>=5.1,<5.2",
+    "django>=6.0,<6.1",
     "django-vite>=3.1.0",
     "dj-database-url>=2.2.0",
     "gunicorn>=23.0.0",
     "pytz>=2023.3",
 ]
+
+[project.scripts]
+# Lets management commands run as `uv run manage <command>`.
+manage = "djangovue.cli:main"
 
 [project.optional-dependencies]
 dev = [

@@ -53,7 +53,9 @@ RUN uv sync --frozen --no-dev
 COPY --from=frontend-builder /app/frontend/dist/ ./frontend/dist/
 
 # Collect static files
-RUN SECRET_KEY=docker-build-only-secret DEBUG=1 ALLOWED_HOSTS=localhost uv run python manage.py collectstatic --noinput
+# Use a safe dummy key via ARG to avoid hardcoding secrets in the RUN command
+ARG BUILD_DUMMY_KEY=dummy-secret-key-for-build
+RUN SECRET_KEY=${BUILD_DUMMY_KEY} DEBUG=1 ALLOWED_HOSTS=localhost uv run python manage.py collectstatic --noinput
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser && \
