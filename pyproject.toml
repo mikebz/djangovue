@@ -16,6 +16,10 @@ dependencies = [
     "pytz>=2023.3",
 ]
 
+[project.scripts]
+# Lets management commands run as `uv run manage <command>`.
+manage = "djangovue.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "ruff>=0.1.0",

@@ -11,9 +11,6 @@ ENV_FILES := .env.example $(wildcard .env)
 ENV_KEYS := $(shell sed -nE 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' $(ENV_FILES) | sort -u)
 export $(ENV_KEYS)
 
-PY     := uv run python
-MANAGE := $(PY) manage.py
-
 # Targets that shell out to uv all depend on the guard below. `run` and `e2e` name
 # it in their own rules instead, so it is checked before the frontend is built.
 UV_TARGETS := install migrate makemigrations shell lint lint-fix format \
@@ -47,28 +44,28 @@ run: ensure-uv frontend-build ## Start Django with built frontend assets on a si
 	@echo "Django binds to 0.0.0.0:8000."
 	@echo "In a dev container or Codespaces, open the forwarded port URL from the Ports tab."
 	@echo "From inside the container, the app is available at http://127.0.0.1:8000/."
-	$(MANAGE) runserver 0.0.0.0:8000
+	uv run manage runserver 0.0.0.0:8000
 
 migrate: ## Run Django migrations
-	$(MANAGE) migrate
+	uv run manage migrate
 
 makemigrations: ## Create new Django migrations
-	$(MANAGE) makemigrations
+	uv run manage makemigrations
 
 shell: ## Start Django shell
-	$(MANAGE) shell
+	uv run manage shell
 
 superuser: ## Create Django superuser
-	$(MANAGE) createsuperuser
+	uv run manage createsuperuser
 
 collectstatic: ## Collect static files
-	$(MANAGE) collectstatic --noinput
+	uv run manage collectstatic --noinput
 
 status: ## Show project status and environment info
 	@echo "Project status"
-	@echo "Python version: $$($(PY) --version)"
+	@echo "Python version: $$(uv run python --version)"
 	@echo "UV version: $$(uv --version)"
-	@echo "Django version: $$($(PY) -c 'import django; print(django.get_version())')"
+	@echo "Django version: $$(uv run python -c 'import django; print(django.get_version())')"
 	@echo "Virtual environment: $$(test -d .venv && echo present || echo missing)"
 	@echo "Dependencies: $$(test -f uv.lock && echo locked || echo missing)"
 	@echo "Node.js: $$(command -v node >/dev/null 2>&1 && node --version || echo missing)"
@@ -76,14 +73,14 @@ status: ## Show project status and environment info
 
 # Checks
 check: ## Run Django system checks
-	$(MANAGE) check
+	uv run manage check
 
 test: ## Run Django tests
-	$(MANAGE) test
+	uv run manage test
 
 e2e: ensure-uv frontend-build ## Run end-to-end checks (template render + server boot)
-	$(MANAGE) migrate
-	$(PY) scripts/e2e_template_check.py
+	uv run manage migrate
+	uv run python scripts/e2e_template_check.py
 	./scripts/e2e_server_smoke.sh
 
 lint: ## Run code linter (ruff)
@@ -99,7 +96,7 @@ format: ## Format code with black
 	uv run black .
 
 typecheck: ## Run static type checking with mypy
-	$(PY) -m mypy
+	uv run mypy
 
 # Builds the frontend up front: `check` and `test` render templates against the
 # manifest, so on a clean checkout they fail without it (CI builds separately).
