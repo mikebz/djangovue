@@ -1,0 +1,54 @@
+version: 2
+
+# Replaces the hand-rolled Dependency Updates workflow. Pull requests opened by
+# Dependabot run CI normally, which ones opened with GITHUB_TOKEN by a workflow
+# do not: https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/trigger-a-workflow#triggering-a-workflow-from-a-workflow
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    commit-message:
+      prefix: "chore"
+    groups:
+      python:
+        patterns: [ "*" ]
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    commit-message:
+      prefix: "chore"
+    groups:
+      frontend:
+        patterns: [ "*" ]
+
+  # "/" covers .github/workflows; the composite action is listed explicitly so
+  # the actions it pins are updated too.
+  - package-ecosystem: "github-actions"
+    directories:
+      - "/"
+      - "/.github/actions/setup"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    commit-message:
+      prefix: "chore"
+    groups:
+      actions:
+        patterns: [ "*" ]
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    commit-message:
+      prefix: "chore"
