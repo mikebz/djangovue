@@ -17,7 +17,25 @@ def get_env_bool(
     default: bool = False,
     environ: Mapping[str, str] | None = None,
 ) -> bool:
-    """Return an environment variable as a boolean."""
+    """Return an environment variable as a boolean.
+
+    Args:
+        name: The name of the environment variable.
+        default: The default value to return if the variable is missing.
+        environ: Optional mapping to use instead of `os.environ`.
+
+    Returns:
+        The evaluated boolean value of the environment variable.
+
+    Examples:
+        >>> get_env_bool("DEBUG", environ={"DEBUG": "1"})
+        True
+        >>> get_env_bool("DEBUG", environ={"DEBUG": "false"})
+        False
+        >>> get_env_bool("MISSING", default=True, environ={})
+        True
+
+    """
     env = os.environ if environ is None else environ
     raw_value = env.get(name)
     if raw_value is None:
@@ -31,7 +49,25 @@ def get_env_list(
     default: Sequence[str] | None = None,
     environ: Mapping[str, str] | None = None,
 ) -> list[str]:
-    """Return a comma-separated environment variable as a list of strings."""
+    """Return a comma-separated environment variable as a list of strings.
+
+    Args:
+        name: The name of the environment variable.
+        default: The default sequence to use if the variable is missing.
+        environ: Optional mapping to use instead of `os.environ`.
+
+    Returns:
+        A list of strings split by commas.
+
+    Examples:
+        >>> get_env_list("HOSTS", environ={"HOSTS": "a,b, c "})
+        ['a', 'b', 'c']
+        >>> get_env_list("MISSING", environ={})
+        []
+        >>> get_env_list("MISSING", default=["local"], environ={})
+        ['local']
+
+    """
     env = os.environ if environ is None else environ
     raw_value = env.get(name)
     if raw_value is None:
@@ -45,7 +81,26 @@ def get_env_int(
     default: int,
     environ: Mapping[str, str] | None = None,
 ) -> int:
-    """Return an environment variable as an integer."""
+    """Return an environment variable as an integer.
+
+    Args:
+        name: The name of the environment variable.
+        default: The default value to return if the variable is missing.
+        environ: Optional mapping to use instead of `os.environ`.
+
+    Returns:
+        The integer value of the environment variable.
+
+    Raises:
+        ImproperlyConfigured: If the value cannot be parsed as an integer.
+
+    Examples:
+        >>> get_env_int("PORT", default=8000, environ={"PORT": "8080"})
+        8080
+        >>> get_env_int("PORT", default=8000, environ={})
+        8000
+
+    """
     env = os.environ if environ is None else environ
     raw_value = env.get(name)
     if raw_value is None:
