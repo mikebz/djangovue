@@ -28,8 +28,7 @@ def main() -> int:
     missing = [snippet for snippet in EXPECTED_SNIPPETS if snippet not in rendered]
     if missing:
         print("Missing expected template snippets:")
-        for snippet in missing:
-            print(f"- {snippet}")
+        print("- " + "\n- ".join(missing))
         return 1
 
     print(f"Template rendered successfully (length={len(rendered)} chars)")

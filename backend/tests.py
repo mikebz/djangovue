@@ -1,6 +1,7 @@
 """Test suite for backend views, routing, and settings helpers."""
 
 import importlib
+import os
 from unittest import mock
 
 from django.core.exceptions import ImproperlyConfigured
@@ -133,6 +134,26 @@ class HealthEndpointTest(SimpleTestCase):
         self.assertEqual(response.json(), {"status": "ok"})
 
 
+class SettingsModuleTest(SimpleTestCase):
+    """Test module-level settings evaluations."""
+
+    def test_missing_secret_key_raises_error(self) -> None:
+        """GIVEN: A missing SECRET_KEY in the environment.
+
+        WHEN: The settings module is evaluated
+        THEN: It should raise ImproperlyConfigured
+        """
+        # We use mock.patch.dict to clear the environment for testing
+        with mock.patch.dict(os.environ, clear=True):
+            with self.assertRaisesMessage(
+                ImproperlyConfigured, "SECRET_KEY environment variable must be set"
+            ):
+                importlib.reload(project_settings)
+
+        # Reload settings again with the original environment to restore state
+        importlib.reload(project_settings)
+
+
 class SettingsHelpersTest(SimpleTestCase):
     """Test environment parsing helpers used by project settings."""
 
@@ -151,6 +172,17 @@ class SettingsHelpersTest(SimpleTestCase):
         self.assertEqual(
             project_settings.get_env_list("ALLOWED_HOSTS", environ=environ),
             ["example.com", "api.example.com"],
+        )
+
+    def test_get_env_list_returns_empty_when_missing(self) -> None:
+        """Return an empty list when an environment variable is missing and no default is provided."""
+        self.assertEqual(project_settings.get_env_list("MISSING", environ={}), [])
+
+    def test_get_env_list_uses_default_when_missing(self) -> None:
+        """Return the default sequence as a list when an environment variable is missing."""
+        self.assertEqual(
+            project_settings.get_env_list("MISSING", default=("a", "b"), environ={}),
+            ["a", "b"],
         )
 
     def test_get_env_int_uses_default(self) -> None:

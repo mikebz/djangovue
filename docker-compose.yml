@@ -10,7 +10,7 @@ services:
       - /app/node_modules
       - /app/.venv
     environment:
-      - SECRET_KEY=dev-secret-key-change-me
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set (e.g., via .env)}
       - DEBUG=1
       - ALLOWED_HOSTS=localhost,127.0.0.1
       - DJANGO_VITE_DEV_MODE=1

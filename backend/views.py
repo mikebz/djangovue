@@ -14,10 +14,7 @@ def index(request: HttpRequest) -> HttpResponse:
         The HTTP response containing the rendered index page.
 
     """
-    context: dict[str, str] = {
-        "data": "value",
-    }
-    return render(request, "index.html", context)
+    return render(request, "index.html")
 
 
 def healthz(_request: HttpRequest) -> JsonResponse:
