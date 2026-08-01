@@ -15,6 +15,12 @@ EXPECTED_SNIPPETS: tuple[str, ...] = (
 
 
 def main() -> int:
+    """Run the end-to-end template validation script.
+
+    Returns:
+        The integer exit code (0 for success, 1 for failure).
+
+    """
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djangovue.settings")
     django.setup()
 

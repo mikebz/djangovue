@@ -1,4 +1,5 @@
 <template>
+  <!-- Main application component representing the entry point for the Vue app -->
   <main class="app-shell">
     <section class="hero">
       <p class="eyebrow">Django + Vue</p>

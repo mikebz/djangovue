@@ -7,8 +7,8 @@ from djangovue import settings as project_settings
 
 
 class IndexViewTest(TestCase):
-    """
-    Test the main index view that serves the Vue.js application.
+    """Test the main index view that serves the Vue.js application.
+
     Following TDD principles with clear test naming and structure.
     """
 
@@ -17,8 +17,8 @@ class IndexViewTest(TestCase):
         self.client = Client()
 
     def test_index_view_returns_200_status_code(self) -> None:
-        """
-        GIVEN: A request to the root URL
+        """GIVEN: A request to the root URL.
+
         WHEN: The index view is called
         THEN: It should return a 200 status code
         """
@@ -26,8 +26,8 @@ class IndexViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_index_view_uses_correct_template(self) -> None:
-        """
-        GIVEN: A request to the root URL
+        """GIVEN: A request to the root URL.
+
         WHEN: The index view is called
         THEN: It should use the index.html template
         """
@@ -35,8 +35,8 @@ class IndexViewTest(TestCase):
         self.assertTemplateUsed(response, "index.html")
 
     def test_index_view_contains_vue_app_div(self) -> None:
-        """
-        GIVEN: A request to the root URL
+        """GIVEN: A request to the root URL.
+
         WHEN: The index view is called
         THEN: The response should contain the Vue.js app mount point
         """
@@ -44,8 +44,8 @@ class IndexViewTest(TestCase):
         self.assertContains(response, '<div id="app">')
 
     def test_index_view_contains_vue_js_title(self) -> None:
-        """
-        GIVEN: A request to the root URL
+        """GIVEN: A request to the root URL.
+
         WHEN: The index view is called
         THEN: The response should contain the Vue.js App title
         """
@@ -53,8 +53,8 @@ class IndexViewTest(TestCase):
         self.assertContains(response, "Vue.js App")
 
     def test_index_view_contains_javascript_bundle(self) -> None:
-        """
-        GIVEN: A request to the root URL
+        """GIVEN: A request to the root URL.
+
         WHEN: The index view is called
         THEN: The response should include JavaScript bundle references
         """
@@ -62,8 +62,8 @@ class IndexViewTest(TestCase):
         self.assertContains(response, ".js")
 
     def test_index_view_contains_css_bundle(self) -> None:
-        """
-        GIVEN: A request to the root URL
+        """GIVEN: A request to the root URL.
+
         WHEN: The index view is called
         THEN: The response should include CSS bundle references
         """
@@ -72,14 +72,14 @@ class IndexViewTest(TestCase):
 
 
 class URLConfigTest(TestCase):
-    """
-    Test URL configuration and routing.
+    """Test URL configuration and routing.
+
     Ensures proper URL patterns are working.
     """
 
     def test_root_url_resolves_to_index_view(self) -> None:
-        """
-        GIVEN: The root URL pattern
+        """GIVEN: The root URL pattern.
+
         WHEN: A request is made to '/'
         THEN: It should resolve to the index view
         """
@@ -91,14 +91,14 @@ class URLConfigTest(TestCase):
 
 
 class ViteIntegrationTest(TestCase):
-    """
-    Test Django-Vite integration.
+    """Test Django-Vite integration.
+
     Ensures build assets are properly integrated.
     """
 
     def test_vite_assets_are_loaded(self) -> None:
-        """
-        GIVEN: A built frontend with Vite
+        """GIVEN: A built frontend with Vite.
+
         WHEN: The index page is loaded
         THEN: Vite-generated assets should be referenced
         """
@@ -109,8 +109,8 @@ class ViteIntegrationTest(TestCase):
         self.assertContains(response, 'rel="stylesheet"')
 
     def test_static_files_configuration_works(self) -> None:
-        """
-        GIVEN: Django static files configuration
+        """GIVEN: Django static files configuration.
+
         WHEN: Static files are requested
         THEN: They should be served correctly in development
         """
