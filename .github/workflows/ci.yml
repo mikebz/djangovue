@@ -5,161 +5,69 @@ on:
     branches: [ master, main ]
   pull_request:
     branches: [ master, main ]
+  workflow_dispatch:
+
+# Read-only by default; no job here needs to write to the repository.
+permissions:
+  contents: read
+
+# A new push to a pull request makes the in-flight run obsolete. Branch runs are
+# left alone so every commit on master keeps its own status.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  lint-python:
-    name: Python Linting
+  lint:
+    name: Lint and Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install UV
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-
-    - name: Set up Python
-      run: uv python install 3.13
-
-    - name: Install Python dependencies
-      run: make install
+    # ruff, black and mypy read source only, so this job skips the frontend.
+    - name: Setup toolchain
+      uses: ./.github/actions/setup
 
     - name: Run Python lint and format checks
       run: make lint
 
-  lint-frontend:
-    name: Frontend Linting
+    - name: Run static type checking
+      run: make typecheck
+
+  test:
+    name: Tests and E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - name: Setup toolchain
+      uses: ./.github/actions/setup
       with:
-        node-version: '22'
-        cache: 'npm'
+        node: "true"
 
-    - name: Install frontend dependencies
-      run: make frontend-install
-
+    # `check`, `test` and `e2e` all render index.html through
+    # frontend/dist/.vite/manifest.json, which does not exist on a fresh
+    # checkout. Building first is what keeps them from failing spuriously.
     - name: Build frontend
       run: make frontend-build
 
-  test-python:
-    name: Python Tests
+    - name: Run Django checks, tests and end-to-end checks
+      run: make check test e2e
+
+  docker:
+    name: Docker Build
     runs-on: ubuntu-latest
-    env:
-      SECRET_KEY: ci-secret-key
-      DEBUG: "1"
-      ALLOWED_HOSTS: localhost,127.0.0.1
+    timeout-minutes: 15
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install UV
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-
-    - name: Set up Python
-      run: uv python install 3.13
-
-    - name: Install Python dependencies
-      run: make install
-
-    - name: Setup Node.js for frontend build
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
-
-    - name: Install frontend dependencies
-      run: make frontend-install
-
-    - name: Build frontend for Django integration
-      run: make frontend-build
-
-    - name: Run Django checks and tests
-      run: |
-        make check
-        make test
-
-  integration-test:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: [lint-python, lint-frontend, test-python]
-    env:
-      SECRET_KEY: ci-secret-key
-      DEBUG: "1"
-      ALLOWED_HOSTS: localhost,127.0.0.1
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install UV
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-
-    - name: Set up Python
-      run: uv python install 3.13
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
-
-    - name: Install all dependencies
-      run: |
-        make install
-        make frontend-install
-
-    - name: Build frontend
-      run: make frontend-build
-
-    - name: Run integration checks
-      run: make e2e
-
-  security-scan:
-    name: Security Scanning
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install UV
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-
-    - name: Set up Python
-      run: uv python install 3.13
-
-    - name: Install Python dependencies
-      run: uv sync --extra dev
-
-    - name: Run safety check for Python dependencies
-      run: |
-        uv add --dev safety
-        uv run safety check --json || echo "⚠️ Security vulnerabilities found - review required"
-
-    - name: Setup Node.js for security audit
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
-
-    - name: Install frontend dependencies
-      run: npm ci
-
-    - name: Run npm security audit
-      run: |
-        npm audit --audit-level=moderate || echo "⚠️ Frontend security issues found - review required"
+    - name: Build image
+      run: make docker-build

@@ -1,0 +1,79 @@
+name: Security
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  schedule:
+    # Weekly on Mondays at 09:00 UTC, so advisories published against unchanged
+    # dependencies still surface.
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        python-version: "3.13"
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: npm
+
+    # Findings are reported, not enforced: a fresh advisory against a transitive
+    # dependency should not block unrelated pull requests. Each audit writes to
+    # the run summary and raises a warning annotation instead of failing.
+    #
+    # Both audits read the lock files, so nothing is installed into the project
+    # and neither pyproject.toml nor uv.lock is modified by the scan.
+    - name: Audit Python dependencies
+      run: |
+        uv export --frozen --no-emit-project --all-extras --no-hashes \
+          --format requirements-txt > /tmp/requirements.txt
+        status=0
+        uvx pip-audit --requirement /tmp/requirements.txt --no-deps \
+          --format markdown > /tmp/pip-audit.md || status=$?
+        {
+          echo "## Python dependency audit"
+          echo
+          # pip-audit prints nothing on stdout when it finds nothing.
+          cat /tmp/pip-audit.md
+          test -s /tmp/pip-audit.md || echo "No known vulnerabilities found."
+          echo
+        } >> "$GITHUB_STEP_SUMMARY"
+        test "$status" -eq 0 \
+          || echo "::warning::Python dependency vulnerabilities found - see the run summary"
+
+    - name: Audit frontend dependencies
+      run: |
+        status=0
+        npm audit --audit-level=moderate > /tmp/npm-audit.txt || status=$?
+        {
+          echo "## Frontend dependency audit"
+          echo
+          echo '```'
+          cat /tmp/npm-audit.txt
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+        test "$status" -eq 0 \
+          || echo "::warning::Frontend dependency vulnerabilities found - see the run summary"

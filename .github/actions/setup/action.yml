@@ -1,0 +1,41 @@
+name: Setup toolchain
+description: >-
+  Install uv (with a warm cache) and the Python dependencies, and optionally
+  Node.js and the frontend dependencies. Every CI job needs some prefix of this,
+  so it lives here rather than being repeated per job.
+
+inputs:
+  python-version:
+    description: Python version uv should install and pin.
+    default: "3.13"
+  node-version:
+    description: Node.js version to install. Ignored unless `node` is "true".
+    default: "22"
+  node:
+    description: Install Node.js and run `make frontend-install`.
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv and Python ${{ inputs.python-version }}
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install Python dependencies
+      run: make install
+      shell: bash
+
+    - name: Setup Node.js ${{ inputs.node-version }}
+      if: inputs.node == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+
+    - name: Install frontend dependencies
+      if: inputs.node == 'true'
+      run: make frontend-install
+      shell: bash
