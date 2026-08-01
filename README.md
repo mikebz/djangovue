@@ -2,7 +2,7 @@
 ![Vue.js Logo](https://github.com/mikebz/djangovue/raw/master/frontend/img/logo.png "Vue.js")
 
 This is a starter project for Django with Vue.js. The frontend uses Vue 3 + Vite, and the backend uses
-Django 5 with environment-driven settings.
+Django 6 with environment-driven settings.
 
 ## Why this starter in 2026?
 
@@ -131,9 +131,35 @@ Optional:
 - `DB_CONN_MAX_AGE`: Database persistent connection age in seconds (default `60`).
 - `SECURE_SSL_REDIRECT`: Force HTTPS redirects (defaults to `0`, set to `1` in TLS-terminated production).
 - `USE_X_FORWARDED_PROTO`: Trust `X-Forwarded-Proto` from a controlled reverse proxy (default `0`).
+- `SECURE_HSTS_SECONDS`: HSTS max-age in seconds (default `0`, meaning off). Only turn this on once the site is fully served over HTTPS — browsers will refuse plain HTTP for the whole max-age.
+- `SECURE_HSTS_INCLUDE_SUBDOMAINS`: Apply HSTS to subdomains too (default `0`).
+- `SECURE_HSTS_PRELOAD`: Add the HSTS `preload` directive (default `0`).
 - `DJANGO_VITE_DEV_MODE`: Enables Vite dev server mode.
 - `DJANGO_VITE_DEV_SERVER_HOST`: Vite host (default `127.0.0.1`).
 - `DJANGO_VITE_DEV_SERVER_PORT`: Vite port (default `3000`).
+
+## Content Security Policy
+
+Responses carry a Content Security Policy built with Django 6's native CSP
+support (`SECURE_CSP` plus `django.middleware.csp.ContentSecurityPolicyMiddleware`).
+
+A built deployment is same-origin throughout: scripts, styles, and XHR are
+limited to `'self'`, framing and plugins are denied outright, and `data:` URIs
+are allowed only for images and fonts because Vite inlines small assets that
+way.
+
+`DJANGO_VITE_DEV_MODE=1` widens the policy to the Vite dev server only: its
+HTTP origin for modules and styles, its websocket origin for hot module
+replacement, and `'unsafe-inline'` styles because Vite injects single-file
+component CSS as inline `<style>` elements while developing. None of those
+relaxations apply once the frontend is built.
+
+Inline scripts and styles of your own should carry the per-request nonce, which
+`django.template.context_processors.csp` exposes to templates:
+
+```html
+<script nonce="{{ csp_nonce }}">…</script>
+```
 
 ## CI/CD & Deployment
 
@@ -187,7 +213,7 @@ make docker-build
 - **Django + Vue remains a strong split**: backend-rendered pages and APIs on Django, interactive UI on Vue, without overengineering routing or deployment.
 - **Vite replaced legacy bundler complexity**: builds are fast and predictable, and local iteration is much smoother than older webpack-era setups.
 - **Strong defaults with room to grow**: start with SQLite and one service, then move to Postgres, workers, and CDN/static hosting patterns when needed.
-- **Tooling stays current**: Python 3.11+, Django 5.1, Vue 3.5, Vite 6, Ruff, Black, mypy, Docker, and CI automation are already integrated.
+- **Tooling stays current**: Python 3.12+, Django 6.0, Vue 3.5, Vite 8, Ruff, Black, mypy (strict, with `django-stubs`), Docker, and CI automation are already integrated.
 
 ## 📝 Migration Notes
 
@@ -196,7 +222,7 @@ If you're upgrading from the old setup:
 - Use `uv sync` instead of `pip install -r requirements.txt`
 - Virtual environment is automatically managed by UV in `.venv/`
 - All dependencies are pinned in `uv.lock` for reproducible builds
-- **Python 3.11+** is now required (upgraded from 3.10+)
+- **Python 3.12+** is now required (Django 6.0 dropped 3.10 and 3.11)
 - **GitHub Actions** automatically test all changes
 - **Docker support** available for containerized deployments
 - **Automated security scanning** monitors for vulnerabilities

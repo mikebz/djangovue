@@ -7,13 +7,13 @@ authors = [
 ]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.11"
+# Django 6.0 dropped Python 3.11; 3.12 is the floor for the whole project.
+requires-python = ">=3.12"
 dependencies = [
-    "django>=5.1,<5.2",
+    "django>=6.0,<6.1",
     "django-vite>=3.1.0",
     "dj-database-url>=2.2.0",
     "gunicorn>=23.0.0",
-    "pytz>=2023.3",
 ]
 
 [project.scripts]
@@ -25,6 +25,9 @@ dev = [
     "ruff>=0.1.0",
     "black>=23.0.0",
     "mypy>=1.11.0",
+    # Django ships no inline annotations; these stubs are what make the
+    # `disallow_untyped_defs` type check meaningful across Django call sites.
+    "django-stubs[compatible-mypy]>=6.0.0",
 ]
 
 [build-system]
@@ -33,7 +36,7 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [
@@ -55,7 +58,7 @@ known-first-party = ["djangovue", "backend"]
 
 [tool.black]
 line-length = 88
-target-version = ['py313']
+target-version = ['py312']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -72,11 +75,16 @@ extend-exclude = '''
 '''
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.12"
+# `strict` turns on disallow_untyped_defs plus the rest of the strict family
+# (untyped calls, untyped decorators, implicit Optional, Any returns).
+strict = true
 ignore_missing_imports = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-disallow_untyped_defs = true
-check_untyped_defs = true
 exclude = ["backend/migrations/"]
 files = ["backend", "djangovue", "manage.py", "scripts/e2e_template_check.py"]
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+# The plugin imports these settings, so `make typecheck` must run with the
+# environment from .env.example loaded - the Makefile does that for every target.
+django_settings_module = "djangovue.settings"
