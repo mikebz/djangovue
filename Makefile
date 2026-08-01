@@ -1,79 +1,67 @@
 # Makefile for djangovue project
-# Uses uv for Python package management
-
-.PHONY: help install run migrate makemigrations shell test e2e lint lint-fix format check typecheck verify clean setup frontend-install frontend-dev frontend-watch frontend-preview collectstatic superuser clean-all frontend-build prod-build docker-build docker-run docker-dev status
+# A task runner: every recipe shells out to uv (Python) or npm (frontend).
 
 .DEFAULT_GOAL := help
+.NOTPARALLEL:
 
+# .env.example provides defaults; a local .env overrides individual keys.
 ENV_FILES := .env.example $(wildcard .env)
 -include $(ENV_FILES)
 
 ENV_KEYS := $(shell sed -nE 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' $(ENV_FILES) | sort -u)
 export $(ENV_KEYS)
 
-ensure-python-tools:
-	@command -v uv >/dev/null 2>&1 || { echo "Install uv: https://docs.astral.sh/uv/getting-started/installation/" >&2; exit 1; }
+# Targets that shell out to uv all depend on the guard below. `run` and `e2e` name
+# it in their own rules instead, so it is checked before the frontend is built.
+UV_TARGETS := install migrate makemigrations shell lint lint-fix format \
+              check typecheck test status collectstatic superuser
+$(UV_TARGETS): ensure-uv
+
+# Targets that must render templates against the built manifest rather than
+# the Vite dev server. Prerequisites inherit this, so frontend-build sees it too.
+run e2e check test: export DJANGO_VITE_DEV_MODE := 0
+
+.PHONY: help ensure-uv setup install run migrate makemigrations shell superuser \
+        collectstatic status test e2e check lint lint-fix format typecheck verify \
+        frontend-install frontend-dev frontend-watch frontend-preview frontend-build \
+        prod-build docker-build docker-run docker-dev clean clean-all
 
 help: ## Show this help message
 	@printf "Django + Vue commands\n\n"
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*## ' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
 
-install: ensure-python-tools ## Install Python dependencies
+ensure-uv:
+	@command -v uv >/dev/null 2>&1 || { echo "Install uv: https://docs.astral.sh/uv/getting-started/installation/" >&2; exit 1; }
+
+# Setup
+setup: install frontend-install migrate ## Initial project setup
+
+install: ## Install Python dependencies
 	uv sync --extra dev
 
-run: export DJANGO_VITE_DEV_MODE := 0
-run: ensure-python-tools frontend-build ## Start Django with built frontend assets on a single port
+# Django
+run: ensure-uv frontend-build ## Start Django with built frontend assets on a single port
 	@echo "Django binds to 0.0.0.0:8000."
 	@echo "In a dev container or Codespaces, open the forwarded port URL from the Ports tab."
 	@echo "From inside the container, the app is available at http://127.0.0.1:8000/."
-	uv run python manage.py runserver 0.0.0.0:8000
+	uv run manage runserver 0.0.0.0:8000
 
-migrate: ensure-python-tools ## Run Django migrations
-	uv run python manage.py migrate
+migrate: ## Run Django migrations
+	uv run manage migrate
 
-makemigrations: ensure-python-tools ## Create new Django migrations
-	uv run python manage.py makemigrations
+makemigrations: ## Create new Django migrations
+	uv run manage makemigrations
 
-shell: ensure-python-tools ## Start Django shell
-	uv run python manage.py shell
+shell: ## Start Django shell
+	uv run manage shell
 
-e2e: export DJANGO_VITE_DEV_MODE := 0
-e2e: ensure-python-tools frontend-build ## Run end-to-end checks (template render + server boot)
-	uv run python manage.py migrate
-	uv run python scripts/e2e_template_check.py
-	./scripts/e2e_server_smoke.sh
+superuser: ## Create Django superuser
+	uv run manage createsuperuser
 
-lint: ensure-python-tools ## Run code linter (ruff)
-	uv run ruff check .
-	uv run ruff format --check .
-	uv run black --check .
+collectstatic: ## Collect static files
+	uv run manage collectstatic --noinput
 
-lint-fix: ensure-python-tools ## Run linter with auto-fix
-	uv run ruff check --fix .
-
-format: ensure-python-tools ## Format code with black
-	uv run ruff format .
-	uv run black .
-
-check: export DJANGO_VITE_DEV_MODE := 0
-check: ensure-python-tools ## Run Django system checks
-	uv run python manage.py check
-
-typecheck: ensure-python-tools ## Run static type checking with mypy
-	uv run python -m mypy
-
-test: export DJANGO_VITE_DEV_MODE := 0
-test: ensure-python-tools ## Run Django tests
-	uv run python manage.py test
-
-verify: ## Run lint, checks, tests, and e2e used in CI
-	$(MAKE) lint
-	$(MAKE) typecheck
-	$(MAKE) check
-	$(MAKE) test
-	$(MAKE) e2e
-
-status: ensure-python-tools ## Show project status and environment info
+status: ## Show project status and environment info
 	@echo "Project status"
 	@echo "Python version: $$(uv run python --version)"
 	@echo "UV version: $$(uv --version)"
@@ -83,13 +71,39 @@ status: ensure-python-tools ## Show project status and environment info
 	@echo "Node.js: $$(command -v node >/dev/null 2>&1 && node --version || echo missing)"
 	@echo "NPM packages: $$(test -d node_modules && echo installed || echo missing)"
 
-collectstatic: ensure-python-tools ## Collect static files
-	uv run python manage.py collectstatic --noinput
+# Checks
+check: ## Run Django system checks
+	uv run manage check
 
-superuser: ensure-python-tools ## Create Django superuser
-	uv run python manage.py createsuperuser
+test: ## Run Django tests
+	uv run manage test
 
-# Frontend commands
+e2e: ensure-uv frontend-build ## Run end-to-end checks (template render + server boot)
+	uv run manage migrate
+	uv run python scripts/e2e_template_check.py
+	./scripts/e2e_server_smoke.sh
+
+lint: ## Run code linter (ruff)
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run black --check .
+
+lint-fix: ## Run linter with auto-fix
+	uv run ruff check --fix .
+
+format: ## Format code with black
+	uv run ruff format .
+	uv run black .
+
+typecheck: ## Run static type checking with mypy
+	uv run mypy
+
+# Builds the frontend up front: `check` and `test` render templates against the
+# manifest, so on a clean checkout they fail without it (CI builds separately).
+verify: ensure-uv frontend-build ## Run lint, checks, tests, and e2e used in CI
+	$(MAKE) lint typecheck check test e2e
+
+# Frontend
 frontend-install: ## Install Node.js dependencies
 	npm ci
 
@@ -102,34 +116,15 @@ frontend-watch: ## Watch frontend files for changes
 frontend-preview: ## Preview production build
 	npm run preview
 
-# Cleanup commands
-clean: ## Clean up generated files
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -delete
-	find . -type d -name "*.egg-info" -exec rm -rf {} +
-	rm -rf frontend/bundles/*
+BUILD_ARTIFACTS := frontend/dist frontend/dist/.vite/manifest.json
 
-clean-all: clean ## Clean everything including dependencies
-	rm -rf .venv/
-	rm -rf node_modules/
-	rm -f uv.lock
-	rm -f package-lock.json
-
-# Development setup
-setup: install frontend-install migrate ## Initial project setup
-
-# Production commands
 frontend-build: ## Build frontend for production
 	npm run build
-	@if [ ! -d "frontend/dist" ]; then \
-		echo "Frontend build failed - no dist directory found"; \
-		exit 1; \
-	fi
-	@if [ ! -f "frontend/dist/.vite/manifest.json" ]; then \
-		echo "Frontend build failed - no manifest.json found"; \
-		exit 1; \
-	fi
+	@for artifact in $(BUILD_ARTIFACTS); do \
+		test -e "$$artifact" || { echo "Frontend build failed - no $$artifact found" >&2; exit 1; }; \
+	done
 
+# Production
 prod-build: install frontend-build collectstatic ## Build for production
 
 docker-build: ## Build Docker image
@@ -140,3 +135,12 @@ docker-run: docker-build ## Build and run Docker container
 
 docker-dev: ## Run development environment in Docker
 	docker-compose up --build
+
+# Cleanup
+clean: ## Clean up generated files
+	find . -type d \( -name __pycache__ -o -name '*.egg-info' \) -prune -exec rm -rf {} +
+	rm -rf frontend/bundles/*
+
+clean-all: clean ## Clean everything including dependencies
+	rm -rf .venv/ node_modules/
+	rm -f uv.lock package-lock.json
