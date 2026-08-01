@@ -1,5 +1,9 @@
 """Test suite for backend views, routing, and settings helpers."""
 
+import importlib
+import os
+from unittest import mock
+
 from django.core.exceptions import ImproperlyConfigured
 from django.test import Client, SimpleTestCase, TestCase
 
@@ -128,6 +132,26 @@ class HealthEndpointTest(SimpleTestCase):
         response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+
+class SettingsModuleTest(SimpleTestCase):
+    """Test module-level settings evaluations."""
+
+    def test_missing_secret_key_raises_error(self) -> None:
+        """GIVEN: A missing SECRET_KEY in the environment.
+
+        WHEN: The settings module is evaluated
+        THEN: It should raise ImproperlyConfigured
+        """
+        # We use mock.patch.dict to clear the environment for testing
+        with mock.patch.dict(os.environ, clear=True):
+            with self.assertRaisesMessage(
+                ImproperlyConfigured, "SECRET_KEY environment variable must be set"
+            ):
+                importlib.reload(project_settings)
+
+        # Reload settings again with the original environment to restore state
+        importlib.reload(project_settings)
 
 
 class SettingsHelpersTest(SimpleTestCase):
