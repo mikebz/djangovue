@@ -28,6 +28,15 @@ jobs:
       actions: read
       contents: read
 
+    # Each entry here becomes a code scanning configuration keyed by
+    # `<workflow file>:<job id>/<category>`, and the category below is derived
+    # from the language. Renaming a language therefore retires the old
+    # configuration and creates a new one: the default branch keeps expecting
+    # the retired name, so every pull request gets a neutral "configurations
+    # not found" results check until the stale one is deleted under
+    # Security > Code scanning > Tool status (or ages out on its own).
+    # Treat these values as an interface - changing one is a migration, not a
+    # rename.
     strategy:
       fail-fast: false
       matrix:
