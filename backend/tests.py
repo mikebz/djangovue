@@ -150,6 +150,17 @@ class SettingsHelpersTest(SimpleTestCase):
             ["example.com", "api.example.com"],
         )
 
+    def test_get_env_list_returns_empty_when_missing(self) -> None:
+        """Return an empty list when an environment variable is missing and no default is provided."""
+        self.assertEqual(project_settings.get_env_list("MISSING", environ={}), [])
+
+    def test_get_env_list_uses_default_when_missing(self) -> None:
+        """Return the default sequence as a list when an environment variable is missing."""
+        self.assertEqual(
+            project_settings.get_env_list("MISSING", default=("a", "b"), environ={}),
+            ["a", "b"],
+        )
+
     def test_get_env_int_uses_default(self) -> None:
         """Use the default integer when an environment variable is missing."""
         self.assertEqual(
