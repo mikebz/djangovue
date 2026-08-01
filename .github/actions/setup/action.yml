@@ -19,7 +19,7 @@ runs:
   using: composite
   steps:
     - name: Install uv and Python ${{ inputs.python-version }}
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
         python-version: ${{ inputs.python-version }}
@@ -30,7 +30,7 @@ runs:
 
     - name: Setup Node.js ${{ inputs.node-version }}
       if: inputs.node == 'true'
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: ${{ inputs.node-version }}
         cache: npm
