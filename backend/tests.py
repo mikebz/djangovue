@@ -1,5 +1,8 @@
 """Test suite for backend views, routing, and settings helpers."""
 
+import importlib
+from unittest import mock
+
 from django.core.exceptions import ImproperlyConfigured
 from django.test import Client, SimpleTestCase, TestCase
 
@@ -170,3 +173,19 @@ class SettingsHelpersTest(SimpleTestCase):
         environ = {"DB_CONN_MAX_AGE": "not-a-number"}
         with self.assertRaises(ImproperlyConfigured):
             project_settings.get_env_int("DB_CONN_MAX_AGE", default=60, environ=environ)
+
+
+class SettingsModuleTest(SimpleTestCase):
+    """Test environment variable validation in settings.py."""
+
+    @mock.patch.dict("os.environ", {"SECRET_KEY": "test", "DEBUG": "0"}, clear=True)
+    def test_missing_allowed_hosts_raises_error(self) -> None:
+        """GIVEN: DEBUG is False and ALLOWED_HOSTS is missing.
+
+        WHEN: The settings module is evaluated
+        THEN: It should raise an ImproperlyConfigured exception
+        """
+        with self.assertRaisesMessage(
+            ImproperlyConfigured, "ALLOWED_HOSTS must be set when DEBUG is disabled"
+        ):
+            importlib.reload(project_settings)
