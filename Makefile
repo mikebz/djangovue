@@ -100,7 +100,7 @@ typecheck: ## Run static type checking with mypy
 
 # Builds the frontend up front: `check` and `test` render templates against the
 # manifest, so on a clean checkout they fail without it (CI builds separately).
-verify: frontend-build ## Run lint, checks, tests, and e2e used in CI
+verify: ensure-uv frontend-build ## Run lint, checks, tests, and e2e used in CI
 	$(MAKE) lint typecheck check test e2e
 
 # Frontend
