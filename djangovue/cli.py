@@ -1,3 +1,4 @@
+# Author: Mike Borozdin (mikebz@)
 """Console entry point for Django management commands.
 
 Installed as the ``manage`` script (see ``[project.scripts]`` in

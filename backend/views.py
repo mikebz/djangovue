@@ -1,3 +1,4 @@
+# Author: Mike Borozdin (mikebz@)
 """HTTP views for backend application pages and health checks."""
 
 from django.http import HttpRequest, HttpResponse, JsonResponse

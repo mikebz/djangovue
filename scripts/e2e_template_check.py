@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Author: Mike Borozdin (mikebz@)
 """Validate that the index template renders expected frontend integration markers."""
 
 import os

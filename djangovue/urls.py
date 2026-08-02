@@ -1,3 +1,4 @@
+# Author: Mike Borozdin (mikebz@)
 """djangovue URL Configuration.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
