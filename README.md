@@ -16,6 +16,23 @@ If you are starting a new web product in 2026, this stack is a pragmatic default
 
 This template is especially useful for teams that want to ship quickly without committing to a complex microservice or full-SPA infrastructure upfront.
 
+You could use LLM prompts or a flexible CLI generator of course but there are tradeoffs.
+
+### Djangovue
+
+Delivers a pre-validated, connected and working started with Vite, Vue 3, and Django with minimal configuration overhead.  This has been proven
+to work for projects that got to several million dollars in revenue, so it's a well lit path.
+
+### Generator CLIs
+
+Instantiates a infrastructure including PostgreSQL, Redis, Docker, and secure authentication pipelines. The primary drawback is 
+substantial structural complexity and needing to understand the tradeoffs that you are signing up for.  Ex: cookiecutter-django
+
+### LLM Generated Apps
+
+Maximum flexibility, generating bespoke scaffolding. Conversely, it risks integration errors across and requires you to verify 
+the final output.
+
 ## ⚡ Modern Package Management (UV)
 
 This project now uses [UV](https://github.com/astral-sh/uv) for fast, reliable Python package management instead of pip.
