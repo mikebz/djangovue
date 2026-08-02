@@ -222,6 +222,26 @@ class CspPolicyTest(SimpleTestCase):
         self.assertIn("http://1.2.3.4:5173", policy["script-src"])
         self.assertIn("ws://1.2.3.4:5173", policy["connect-src"])
 
+    def test_dev_policy_brackets_ipv6_host(self) -> None:
+        """Intent: an IPv6 dev server host yields valid CSP source expressions.
+
+        Steps:
+            1. Bracket the literal "::1" with format_url_host.
+            2. Build the dev-mode policy with the bracketed host.
+
+        Verification:
+            The HTTP and websocket origins carry the brackets a URL authority
+            needs, matching the URL django-vite builds from the same host.
+        """
+        host = project_settings.format_url_host("::1")
+        policy = project_settings.build_csp_policy(
+            dev_mode=True,
+            dev_server_host=host,
+            dev_server_port=3000,
+        )
+        self.assertIn("http://[::1]:3000", policy["script-src"])
+        self.assertIn("ws://[::1]:3000", policy["connect-src"])
+
     def test_dev_policy_allows_inline_styles(self) -> None:
         """Intent: Vite injects component styles inline while developing.
 
@@ -244,6 +264,116 @@ class CspPolicyTest(SimpleTestCase):
         )
         self.assertIn(CSP.UNSAFE_INLINE, dev_policy["style-src"])
         self.assertNotIn(CSP.UNSAFE_INLINE, built_policy["style-src"])
+
+
+class UrlHostFormattingTest(SimpleTestCase):
+    """Test host formatting for URL authorities."""
+
+    def test_ipv4_host_is_unchanged(self) -> None:
+        """Intent: ordinary hosts pass through untouched.
+
+        Steps:
+            1. Format an IPv4 address and a hostname.
+
+        Verification:
+            Both come back exactly as given.
+        """
+        self.assertEqual(project_settings.format_url_host("127.0.0.1"), "127.0.0.1")
+        self.assertEqual(project_settings.format_url_host("frontend"), "frontend")
+
+    def test_ipv6_host_is_bracketed(self) -> None:
+        """Intent: a bare IPv6 literal is bracketed before a port is appended.
+
+        Steps:
+            1. Format the literal "::1".
+
+        Verification:
+            The result is "[::1]".
+        """
+        self.assertEqual(project_settings.format_url_host("::1"), "[::1]")
+
+    def test_bracketed_host_is_not_double_wrapped(self) -> None:
+        """Intent: an already-bracketed literal is left alone.
+
+        Steps:
+            1. Format the literal "[::1]".
+
+        Verification:
+            The result is still "[::1]".
+        """
+        self.assertEqual(project_settings.format_url_host("[::1]"), "[::1]")
+
+
+class HstsPreloadValidationTest(SimpleTestCase):
+    """Test the guard on preload-incompatible HSTS configurations."""
+
+    def test_preload_off_accepts_any_settings(self) -> None:
+        """Intent: the guard only applies when preload is actually requested.
+
+        Steps:
+            1. Validate with preload disabled and otherwise unusable values.
+
+        Verification:
+            No exception is raised.
+        """
+        project_settings.validate_hsts_preload(
+            preload=False,
+            include_subdomains=False,
+            max_age=0,
+        )
+
+    def test_preload_needs_subdomains(self) -> None:
+        """Intent: preload without includeSubDomains is rejected at startup.
+
+        Steps:
+            1. Validate with preload on, a one-year max-age, and subdomains
+               off.
+
+        Verification:
+            ImproperlyConfigured names the subdomains setting.
+        """
+        with self.assertRaisesMessage(
+            ImproperlyConfigured, "SECURE_HSTS_INCLUDE_SUBDOMAINS must be enabled"
+        ):
+            project_settings.validate_hsts_preload(
+                preload=True,
+                include_subdomains=False,
+                max_age=project_settings.HSTS_PRELOAD_MIN_SECONDS,
+            )
+
+    def test_preload_needs_one_year_max_age(self) -> None:
+        """Intent: preload with a short max-age is rejected at startup.
+
+        Steps:
+            1. Validate with preload and subdomains on but a one-day max-age.
+
+        Verification:
+            ImproperlyConfigured names the required minimum max-age.
+        """
+        with self.assertRaisesMessage(
+            ImproperlyConfigured, "SECURE_HSTS_SECONDS must be at least 31536000"
+        ):
+            project_settings.validate_hsts_preload(
+                preload=True,
+                include_subdomains=True,
+                max_age=86_400,
+            )
+
+    def test_valid_preload_config_is_accepted(self) -> None:
+        """Intent: a preload-ready configuration passes the guard.
+
+        Steps:
+            1. Validate with preload on, subdomains on, and a one-year
+               max-age.
+
+        Verification:
+            No exception is raised.
+        """
+        project_settings.validate_hsts_preload(
+            preload=True,
+            include_subdomains=True,
+            max_age=project_settings.HSTS_PRELOAD_MIN_SECONDS,
+        )
 
 
 class SettingsModuleTest(SimpleTestCase):
@@ -295,6 +425,29 @@ class SettingsHelpersTest(SimpleTestCase):
         self.assertEqual(
             project_settings.get_env_list("MISSING", default=("a", "b"), environ={}),
             ["a", "b"],
+        )
+
+    def test_get_env_str_uses_default_when_missing(self) -> None:
+        """Return the default string when an environment variable is missing."""
+        self.assertEqual(
+            project_settings.get_env_str("HOST", default="127.0.0.1", environ={}),
+            "127.0.0.1",
+        )
+
+    def test_get_env_str_strips_whitespace(self) -> None:
+        """Trim surrounding whitespace from string values."""
+        environ = {"HOST": "  ::1  "}
+        self.assertEqual(
+            project_settings.get_env_str("HOST", default="x", environ=environ),
+            "::1",
+        )
+
+    def test_get_env_str_falls_back_when_blank(self) -> None:
+        """Treat a blank value as absent and use the default."""
+        environ = {"HOST": "   "}
+        self.assertEqual(
+            project_settings.get_env_str("HOST", default="127.0.0.1", environ=environ),
+            "127.0.0.1",
         )
 
     def test_get_env_int_uses_default(self) -> None:

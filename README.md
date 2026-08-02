@@ -133,7 +133,7 @@ Optional:
 - `USE_X_FORWARDED_PROTO`: Trust `X-Forwarded-Proto` from a controlled reverse proxy (default `0`).
 - `SECURE_HSTS_SECONDS`: HSTS max-age in seconds (default `0`, meaning off). Only turn this on once the site is fully served over HTTPS — browsers will refuse plain HTTP for the whole max-age.
 - `SECURE_HSTS_INCLUDE_SUBDOMAINS`: Apply HSTS to subdomains too (default `0`).
-- `SECURE_HSTS_PRELOAD`: Add the HSTS `preload` directive (default `0`).
+- `SECURE_HSTS_PRELOAD`: Add the HSTS `preload` directive (default `0`). The browser preload list rejects any submission without `SECURE_HSTS_INCLUDE_SUBDOMAINS=1` and `SECURE_HSTS_SECONDS` of at least `31536000`, so enabling this without both is refused at startup rather than shipping a header that will never be accepted.
 - `DJANGO_VITE_DEV_MODE`: Enables Vite dev server mode.
 - `DJANGO_VITE_DEV_SERVER_HOST`: Vite host (default `127.0.0.1`).
 - `DJANGO_VITE_DEV_SERVER_PORT`: Vite port (default `3000`).
