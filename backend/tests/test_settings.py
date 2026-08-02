@@ -161,6 +161,13 @@ class SettingsHelpersTest(SimpleTestCase):
         environ = {"DEBUG": "true"}
         self.assertTrue(utils.get_env_bool("DEBUG", environ=environ))
 
+    def test_get_env_bool_parses_falsy_values(self) -> None:
+        """Parse strings not in the truthy set to False."""
+        for value in ["0", "false", "f", "no", "n", "off", "anything_else"]:
+            with self.subTest(value=value):
+                environ = {"DEBUG": value}
+                self.assertFalse(utils.get_env_bool("DEBUG", environ=environ))
+
     def test_get_env_list_splits_values(self) -> None:
         """Split comma-separated list values and trim whitespace."""
         environ = {"ALLOWED_HOSTS": "example.com, api.example.com"}
