@@ -1,5 +1,7 @@
-# Author: Mike Borozdin (mikebz@)
-"""Test suite for backend views and routing."""
+"""Test suite for backend views and routing.
+
+Author: Mike Borozdin (mikebz@)
+"""
 
 from django.test import Client, SimpleTestCase, TestCase
 

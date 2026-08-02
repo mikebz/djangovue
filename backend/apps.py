@@ -1,5 +1,7 @@
-# Author: Mike Borozdin (mikebz@)
-"""Django app configuration for the backend app."""
+"""Django app configuration for the backend app.
+
+Author: Mike Borozdin (mikebz@)
+"""
 
 from django.apps import AppConfig
 

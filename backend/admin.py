@@ -1,2 +1,4 @@
-# Author: Mike Borozdin (mikebz@)
-"""Django admin registrations for backend models."""
+"""Django admin registrations for backend models.
+
+Author: Mike Borozdin (mikebz@)
+"""

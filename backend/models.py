@@ -1,2 +1,4 @@
-# Author: Mike Borozdin (mikebz@)
-"""Database models for the backend Django app."""
+"""Database models for the backend Django app.
+
+Author: Mike Borozdin (mikebz@)
+"""

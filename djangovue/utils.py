@@ -1,4 +1,7 @@
-# Author: Mike Borozdin (mikebz@)
+"""
+Author: Mike Borozdin (mikebz@)
+"""
+
 import os
 from collections.abc import Mapping, Sequence
 

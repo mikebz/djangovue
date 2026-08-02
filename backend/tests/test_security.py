@@ -1,5 +1,7 @@
-# Author: Mike Borozdin (mikebz@)
-"""Test suite for backend security and CSP logic."""
+"""Test suite for backend security and CSP logic.
+
+Author: Mike Borozdin (mikebz@)
+"""
 
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase

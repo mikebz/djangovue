@@ -1,9 +1,10 @@
-# Author: Mike Borozdin (mikebz@)
 """Django settings for djangovue project.
 
 See https://docs.djangoproject.com/en/6.0/topics/settings/ for the full list of
 settings and https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 for the production deployment checklist this module follows.
+
+Author: Mike Borozdin (mikebz@)
 """
 
 import os

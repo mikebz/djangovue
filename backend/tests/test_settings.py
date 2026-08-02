@@ -1,5 +1,7 @@
-# Author: Mike Borozdin (mikebz@)
-"""Test suite for settings and environment parsing helpers."""
+"""Test suite for settings and environment parsing helpers.
+
+Author: Mike Borozdin (mikebz@)
+"""
 
 import importlib
 import os

@@ -1,5 +1,7 @@
-# Author: Mike Borozdin (mikebz@)
-"""URL patterns for backend views."""
+"""URL patterns for backend views.
+
+Author: Mike Borozdin (mikebz@)
+"""
 
 from django.urls import URLPattern, path
 

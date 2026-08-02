@@ -1,1 +1,3 @@
-# Author: Mike Borozdin (mikebz@)
+"""
+Author: Mike Borozdin (mikebz@)
+"""

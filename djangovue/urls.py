@@ -1,4 +1,3 @@
-# Author: Mike Borozdin (mikebz@)
 """djangovue URL Configuration.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
@@ -15,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import path, include
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 
+Author: Mike Borozdin (mikebz@)
 """
 
 from django.contrib import admin
