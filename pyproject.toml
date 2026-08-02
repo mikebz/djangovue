@@ -85,6 +85,6 @@ files = ["backend", "djangovue", "manage.py", "scripts/e2e_template_check.py"]
 plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]
-# The plugin imports these settings, so `make typecheck` must run with the
-# environment from .env.example loaded - the Makefile does that for every target.
+# The plugin imports these settings, which read .env at import time, so
+# `make typecheck` needs that file - the Makefile creates it from .env.example.
 django_settings_module = "djangovue.settings"

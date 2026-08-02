@@ -22,40 +22,42 @@ RUN npm run build
 # Python application stage
 FROM python:3.14-slim
 
-# Set environment variables
+# PATH puts the project virtualenv first, so `python` and `gunicorn` below are
+# the installed ones and nothing has to resolve dependencies at container start.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    UV_SYSTEM_PYTHON=1
+    PATH="/app/.venv/bin:$PATH"
 
-# Install system dependencies
+# curl backs the HEALTHCHECK below. No compiler is installed: every Python
+# dependency ships a pure-Python wheel.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        curl \
-        build-essential \
+    && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install UV
-RUN pip install uv
+RUN pip install --no-cache-dir uv
 
 # Set work directory
 WORKDIR /app
 
-# Copy Python dependency files
+# Third-party dependencies resolve from the lock file alone, so this layer is
+# reused across every source-only change. The project itself is installed by the
+# second sync, once its source is in place.
 COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
-# Copy project files required to build/install the local package
 COPY . .
-
-# Install Python dependencies
 RUN uv sync --frozen --no-dev
 
 # Copy built frontend from previous stage
 COPY --from=frontend-builder /app/frontend/dist/ ./frontend/dist/
 
-# Collect static files
-# Use a safe dummy key via ARG to avoid hardcoding secrets in the RUN command
+# Collect static files. Settings are imported here, so the two required
+# variables are supplied for this command only - .dockerignore keeps .env out of
+# the image, and runtime configuration comes from the container environment.
 ARG BUILD_DUMMY_KEY=dummy-secret-key-for-build
-RUN SECRET_KEY=${BUILD_DUMMY_KEY} DEBUG=1 ALLOWED_HOSTS=localhost uv run python manage.py collectstatic --noinput
+RUN SECRET_KEY=${BUILD_DUMMY_KEY} DEBUG=1 ALLOWED_HOSTS=localhost \
+    python manage.py collectstatic --noinput
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser && \
@@ -70,4 +72,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/healthz || exit 1
 
 # Run application
-CMD ["uv", "run", "gunicorn", "djangovue.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
+CMD ["gunicorn", "djangovue.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
