@@ -3,6 +3,8 @@
 Installed as the ``manage`` script (see ``[project.scripts]`` in
 pyproject.toml), so commands can be run as ``uv run manage <command>``.
 ``manage.py`` in the project root calls the same function.
+
+Author: Mike Borozdin (mikebz@)
 """
 
 import os

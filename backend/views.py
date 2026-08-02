@@ -1,4 +1,7 @@
-"""HTTP views for backend application pages and health checks."""
+"""HTTP views for backend application pages and health checks.
+
+Author: Mike Borozdin (mikebz@)
+"""
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
