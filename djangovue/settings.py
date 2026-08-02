@@ -14,6 +14,7 @@ from typing import Any
 import dj_database_url
 from dj_database_url import DBConfig
 from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 from djangovue.utils import (
     build_csp_policy,
@@ -27,6 +28,11 @@ from djangovue.utils import (
 
 # Build paths inside the project like this: BASE_DIR / "subdir".
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
+
+# Load environment variables.
+# Since override=False by default, existing variables in the
+# environment take precedence over those in the .env file.
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production

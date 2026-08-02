@@ -23,8 +23,13 @@ class SettingsModuleTest(SimpleTestCase):
         WHEN: The settings module is evaluated
         THEN: It should raise ImproperlyConfigured
         """
-        # We use mock.patch.dict to clear the environment for testing
-        with mock.patch.dict(os.environ, clear=True):
+        # We use mock.patch.dict to clear the environment for testing.
+        # We also mock load_dotenv to prevent it from reading .env
+        # from disk and repopulating SECRET_KEY.
+        with (
+            mock.patch.dict(os.environ, clear=True),
+            mock.patch("djangovue.settings.load_dotenv"),
+        ):
             with self.assertRaisesMessage(
                 ImproperlyConfigured, "SECRET_KEY environment variable must be set"
             ):
