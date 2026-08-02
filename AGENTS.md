@@ -94,16 +94,21 @@ the reasoning comes from an external source.
 - `mypy` runs in `strict` mode with the `django-stubs` plugin. **Every function
   needs full type annotations**, including `-> None`, and module-level settings
   carry explicit annotations too. Migrations are excluded. The plugin imports
-  `djangovue.settings`, so `make typecheck` only works with the environment the
-  `Makefile` loads from `.env.example` — run it through `make`, not bare `mypy`.
+  `djangovue.settings`, which needs a `SECRET_KEY` — run `make typecheck`
+  rather than bare `mypy`, so the `.env` file gets created first.
 - **No function name may exceed 50 characters.** This applies to test functions
   too — if a name does not fit, the test is usually covering too much.
 - Docstrings are Google-style with `Args:`/`Returns:`/`Raises:` sections, and
   every module has one. Match that, even though no linter enforces it.
-- The env helpers in `djangovue/settings.py` (`get_env_bool`, `get_env_list`,
+- The env helpers in `djangovue/utils.py` (`get_env_bool`, `get_env_list`,
   `get_env_int`) take an optional `environ` mapping so they can be tested
   without mutating `os.environ`. Read configuration through them instead of
   touching `os.environ` inline, and keep new config readers in that shape.
+- Configuration comes from `.env`, which `djangovue/settings.py` loads at import
+  time via `load_env_file`. **Real environment variables always win over the
+  file** — that is what lets Docker, Compose, CI, and the `Makefile` override a
+  single key. A new setting goes in `.env.example` and is read through the env
+  helpers; nothing should re-implement the loading.
 - Responses are served under a Content Security Policy built by
   `build_csp_policy` in `djangovue/settings.py`. Anything that loads an asset
   from a new origin, or adds an inline script or style, has to be reflected

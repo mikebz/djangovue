@@ -4,18 +4,19 @@
 .DEFAULT_GOAL := help
 .NOTPARALLEL:
 
-# .env.example provides defaults; a local .env overrides individual keys.
-ENV_FILES := .env.example $(wildcard .env)
--include $(ENV_FILES)
+# Django loads .env itself (see djangovue/settings.py), so make only has to
+# make sure the file exists. Variables exported here - or by CI, docker run, or
+# the shell - still win over it, which is how the DJANGO_VITE_DEV_MODE override
+# below works.
+.env:
+	cp .env.example $@
 
-ENV_KEYS := $(shell sed -nE 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' $(ENV_FILES) | sort -u)
-export $(ENV_KEYS)
-
-# Targets that shell out to uv all depend on the guard below. `run` and `e2e` name
-# it in their own rules instead, so it is checked before the frontend is built.
+# Targets that shell out to uv all depend on the guards below. `run` and `e2e`
+# name them in their own rules instead, so they are checked before the frontend
+# is built.
 UV_TARGETS := install migrate makemigrations shell lint lint-fix format \
               check typecheck test status collectstatic superuser
-$(UV_TARGETS): ensure-uv
+$(UV_TARGETS): ensure-uv .env
 
 # Targets that must render templates against the built manifest rather than
 # the Vite dev server. Prerequisites inherit this, so frontend-build sees it too.
@@ -28,19 +29,19 @@ run e2e check test: export DJANGO_VITE_DEV_MODE := 0
 
 help: ## Show this help message
 	@printf "Django + Vue commands\n\n"
-	@grep -E '^[a-zA-Z_-]+:.*## ' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*## ' $(firstword $(MAKEFILE_LIST)) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-18s %s\n", $$1, $$2}'
 
 ensure-uv:
 	@command -v uv >/dev/null 2>&1 || { echo "Install uv: https://docs.astral.sh/uv/getting-started/installation/" >&2; exit 1; }
 
 # Setup
-setup: install frontend-install migrate ## Initial project setup
+setup: .env install frontend-install migrate ## Create .env, install dependencies, migrate
 
 install: ## Install Python dependencies
 	uv sync --extra dev
 
 # Django
-run: ensure-uv frontend-build ## Start Django with built frontend assets on a single port
+run: ensure-uv .env frontend-build ## Start Django with built frontend assets on a single port
 	@echo "Django binds to 0.0.0.0:8000."
 	@echo "In a dev container or Codespaces, open the forwarded port URL from the Ports tab."
 	@echo "From inside the container, the app is available at http://127.0.0.1:8000/."
@@ -78,7 +79,7 @@ check: ## Run Django system checks
 test: ## Run Django tests
 	uv run manage test
 
-e2e: ensure-uv frontend-build ## Run end-to-end checks (template render + server boot)
+e2e: ensure-uv .env frontend-build ## Run end-to-end checks (template render + server boot)
 	uv run manage migrate
 	uv run python scripts/e2e_template_check.py
 	./scripts/e2e_server_smoke.sh
@@ -100,7 +101,7 @@ typecheck: ## Run static type checking with mypy
 
 # Builds the frontend up front: `check` and `test` render templates against the
 # manifest, so on a clean checkout they fail without it (CI builds separately).
-verify: ensure-uv frontend-build ## Run lint, checks, tests, and e2e used in CI
+verify: ensure-uv .env frontend-build ## Run lint, checks, tests, and e2e used in CI
 	$(MAKE) lint typecheck check test e2e
 
 # Frontend
@@ -130,11 +131,14 @@ prod-build: install frontend-build collectstatic ## Build for production
 docker-build: ## Build Docker image
 	docker build -t djangovue:latest .
 
-docker-run: docker-build ## Build and run Docker container
-	docker run --rm -p 8000:8000 djangovue:latest
+# The image carries no .env (.dockerignore keeps it out), so configuration is
+# passed in. DJANGO_VITE_DEV_MODE is forced off because the image serves the
+# assets it built - the -e flag beating the file is the precedence rule at work.
+docker-run: .env docker-build ## Build and run Docker container
+	docker run --rm --env-file .env -e DJANGO_VITE_DEV_MODE=0 -p 8000:8000 djangovue:latest
 
-docker-dev: ## Run development environment in Docker
-	docker-compose up --build
+docker-dev: .env ## Run development environment in Docker
+	docker compose up --build
 
 # Cleanup
 clean: ## Clean up generated files

@@ -1,5 +1,5 @@
-version: '3.8'
-
+# Development stack: Django with auto-reload plus the Vite dev server.
+# `make docker-dev` creates .env from .env.example first if it is missing.
 services:
   web:
     build: .
@@ -9,17 +9,26 @@ services:
       - .:/app
       - /app/node_modules
       - /app/.venv
+    # The same .env the host uses. `environment:` below holds only what this
+    # stack needs differently, and it wins over the file - both in Compose and
+    # inside Django, which skips any variable the environment already defines.
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set (e.g., via .env)}
-      - DEBUG=1
-      - ALLOWED_HOSTS=localhost,127.0.0.1
-      - DJANGO_VITE_DEV_MODE=1
-      - DJANGO_VITE_DEV_SERVER_HOST=frontend
-      - DJANGO_VITE_DEV_SERVER_PORT=3000
-      - DJANGO_SETTINGS_MODULE=djangovue.settings
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      # Assets come from the frontend service, reachable under its name.
+      DJANGO_VITE_DEV_MODE: "1"
+      DJANGO_VITE_DEV_SERVER_HOST: frontend
+      DJANGO_VITE_DEV_SERVER_PORT: "3000"
+    # runserver rather than gunicorn: the bind mount above is only worth having
+    # with a reloader watching it.
     command: >
-      sh -c "uv run python manage.py migrate &&
-             uv run gunicorn djangovue.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60"
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      - frontend
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
       interval: 30s
@@ -37,4 +46,4 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
+      NODE_ENV: development

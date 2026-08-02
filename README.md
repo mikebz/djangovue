@@ -40,14 +40,13 @@ uv sync --extra dev
 4. Configure environment variables
 ```bash
 cp .env.example .env
-set -a
-source .env
-set +a
 ```
 
-The Makefile always loads `.env.example` defaults and then applies `.env`
-overrides when present, exporting those env-driven Django/Vite settings for
-local commands.
+Django loads `.env` from the project root on startup, so `uv run python
+manage.py ...`, Gunicorn, and the test suite all see the same configuration —
+nothing has to be exported into your shell. Any `make` target that starts
+Django creates `.env` from `.env.example` if it is missing, so `make setup` is
+enough on a fresh checkout.
 
 5. Install JavaScript dependencies and build
 ```bash
@@ -121,6 +120,20 @@ uv sync                               # Install dependencies
 
 ## Environment Variables
 
+Configuration is read from the process environment, with `.env` in the project
+root filling in whatever the environment does not already define:
+
+1. real environment variables — a shell `export`, `docker run -e`, a Compose
+   `environment:` entry, or a CI secret;
+2. `.env` — your local, git-ignored file, copied from `.env.example`;
+3. the defaults in `djangovue/settings.py`, except for the two required
+   variables below.
+
+Environment variables always win, so a deployment can override a single key
+without touching the file — and a deployment that passes every variable in
+needs no `.env` at all. `.env` is excluded from the Docker image for the same
+reason; `make docker-run` passes it in with `--env-file`.
+
 Required:
 - `SECRET_KEY`: Django secret key.
 - `ALLOWED_HOSTS`: Comma-separated hostnames allowed when `DEBUG=0`.
@@ -190,10 +203,17 @@ make docker-run
 make docker-dev
 
 # Or manually:
-docker-compose up --build
+docker compose up --build
 ```
 
-The production container now serves Django through Gunicorn and exposes a health endpoint at `/healthz`.
+The production container serves Django through Gunicorn and exposes a health
+endpoint at `/healthz`. It ships without a `.env` file, so configuration is
+passed in at run time — `make docker-run` forwards your local one with
+`--env-file .env`, and any `-e` flag overrides a single key from it.
+
+The Compose stack is for development: it mounts the working tree, runs
+`runserver` so edits reload, reads the same `.env`, and points Django at the
+Vite dev server running in the `frontend` service.
 
 ### Manual Testing
 
