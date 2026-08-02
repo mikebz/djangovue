@@ -3,10 +3,86 @@ Author: Mike Borozdin (mikebz@)
 """
 
 import os
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.csp import CSP
+
+
+def parse_env_file(text: str) -> dict[str, str]:
+    """Parse the contents of a .env file into a mapping.
+
+    Recognizes `KEY=value` lines with an optional `export ` prefix and optional
+    matching quotes around the value. Blank lines and lines starting with `#`
+    are skipped; a `#` anywhere else belongs to the value, so comments go on
+    their own line. Everything after the first `=` is the value, which is what
+    makes `DATABASE_URL` and other URL-shaped settings survive the round trip.
+
+    Args:
+        text: The raw contents of a .env file.
+
+    Returns:
+        A mapping of variable name to value, in file order.
+
+    Examples:
+        >>> parse_env_file("# comment\\nDEBUG=1\\n\\nexport HOSTS='a,b'\\n")
+        {'DEBUG': '1', 'HOSTS': 'a,b'}
+        >>> parse_env_file("DATABASE_URL=sqlite:///db.sqlite3")
+        {'DATABASE_URL': 'sqlite:///db.sqlite3'}
+
+    """
+    values: dict[str, str] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        name, _, value = stripped.partition("=")
+        name = name.removeprefix("export ").strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if name:
+            values[name] = value
+    return values
+
+
+def load_env_file(
+    path: Path | str,
+    *,
+    environ: MutableMapping[str, str] | None = None,
+) -> dict[str, str]:
+    """Apply a .env file to the environment without overwriting it.
+
+    A variable that is already set wins over the file, so a shell export, a
+    `docker run -e` flag, or a compose `environment:` entry overrides a single
+    key without anyone editing .env. A missing file is not an error: the file
+    is a convenience for local development, and deployments that pass real
+    environment variables never need one.
+
+    Args:
+        path: Path to the .env file.
+        environ: Optional mapping to update instead of `os.environ`.
+
+    Returns:
+        The variables actually applied - those the environment did not
+        already define.
+
+    Examples:
+        >>> load_env_file("does-not-exist.env", environ={})
+        {}
+
+    """
+    env = os.environ if environ is None else environ
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return {}
+    applied = {
+        name: value for name, value in parse_env_file(text).items() if name not in env
+    }
+    env.update(applied)
+    return applied
 
 
 def get_env_bool(

@@ -22,11 +22,19 @@ from djangovue.utils import (
     get_env_int,
     get_env_list,
     get_env_str,
+    load_env_file,
     validate_hsts_preload,
 )
 
 # Build paths inside the project like this: BASE_DIR / "subdir".
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
+
+# Local configuration comes from .env, copied from .env.example by `make setup`
+# and never committed. Loading it here rather than in a task runner is what
+# makes `uv run manage ...`, gunicorn, and the e2e scripts all see the same
+# configuration. Real environment variables are left untouched, so a container
+# or a CI job overrides individual keys without a file at all.
+load_env_file(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production

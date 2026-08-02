@@ -5,6 +5,8 @@ Author: Mike Borozdin (mikebz@)
 
 import importlib
 import os
+import tempfile
+from pathlib import Path
 from unittest import mock
 
 from django.core.exceptions import ImproperlyConfigured
@@ -23,15 +25,128 @@ class SettingsModuleTest(SimpleTestCase):
         WHEN: The settings module is evaluated
         THEN: It should raise ImproperlyConfigured
         """
-        # We use mock.patch.dict to clear the environment for testing
-        with mock.patch.dict(os.environ, clear=True):
-            with self.assertRaisesMessage(
-                ImproperlyConfigured, "SECRET_KEY environment variable must be set"
-            ):
-                importlib.reload(project_settings)
+        # The settings module loads .env before reading SECRET_KEY, so the
+        # loader is stubbed out too - otherwise a developer's .env would
+        # repopulate the environment this test just cleared.
+        with mock.patch.object(utils, "load_env_file", return_value={}):
+            with mock.patch.dict(os.environ, clear=True):
+                with self.assertRaisesMessage(
+                    ImproperlyConfigured, "SECRET_KEY environment variable must be set"
+                ):
+                    importlib.reload(project_settings)
 
         # Reload settings again with the original environment to restore state
         importlib.reload(project_settings)
+
+
+class EnvFileParsingTest(SimpleTestCase):
+    """Test the .env file parser that feeds project configuration."""
+
+    def test_parser_skips_comments_and_blanks(self) -> None:
+        """Intent: a .env file stays readable with comments and spacing.
+
+        Steps:
+            1. Parse a file containing a comment line, a blank line, and one
+               assignment.
+
+        Verification:
+            Only the assignment survives.
+        """
+        parsed = utils.parse_env_file("# a comment\n\nDEBUG=1\n")
+        self.assertEqual(parsed, {"DEBUG": "1"})
+
+    def test_parser_strips_export_and_quotes(self) -> None:
+        """Intent: a .env file that is also shell-sourceable parses the same.
+
+        Steps:
+            1. Parse lines using an `export ` prefix and quoted values.
+
+        Verification:
+            The prefix and the matching quotes are removed from the result.
+        """
+        parsed = utils.parse_env_file("export HOSTS='a,b'\nKEY=\"secret\"\n")
+        self.assertEqual(parsed, {"HOSTS": "a,b", "KEY": "secret"})
+
+    def test_parser_keeps_equals_in_value(self) -> None:
+        """Intent: URL-shaped settings survive parsing intact.
+
+        Steps:
+            1. Parse a value that itself contains "=".
+
+        Verification:
+            Only the first "=" separates name from value.
+        """
+        parsed = utils.parse_env_file("DATABASE_URL=postgres://u:p@h/db?x=1")
+        self.assertEqual(parsed, {"DATABASE_URL": "postgres://u:p@h/db?x=1"})
+
+
+class EnvFileLoadingTest(SimpleTestCase):
+    """Test how a .env file is applied to the process environment."""
+
+    def _write_env(self, contents: str) -> Path:
+        """Write a .env file into a temporary directory for one test.
+
+        Args:
+            contents: The file contents to write.
+
+        Returns:
+            The path to the written file.
+
+        """
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / ".env"
+        path.write_text(contents, encoding="utf-8")
+        return path
+
+    def test_load_sets_undefined_variables(self) -> None:
+        """Intent: .env supplies configuration the environment lacks.
+
+        Steps:
+            1. Write a .env file defining DEBUG.
+            2. Load it into an environment that does not define DEBUG.
+
+        Verification:
+            The value from the file is applied and reported as applied.
+        """
+        environ: dict[str, str] = {}
+        applied = utils.load_env_file(self._write_env("DEBUG=1\n"), environ=environ)
+        self.assertEqual(environ, {"DEBUG": "1"})
+        self.assertEqual(applied, {"DEBUG": "1"})
+
+    def test_environment_wins_over_env_file(self) -> None:
+        """Intent: a real environment variable overrides the .env file.
+
+        Steps:
+            1. Write a .env file defining DEBUG and ALLOWED_HOSTS.
+            2. Load it into an environment that already defines DEBUG.
+
+        Verification:
+            DEBUG keeps the value it was given, ALLOWED_HOSTS comes from the
+            file, and only the latter is reported as applied.
+        """
+        environ = {"DEBUG": "0"}
+        applied = utils.load_env_file(
+            self._write_env("DEBUG=1\nALLOWED_HOSTS=example.com\n"),
+            environ=environ,
+        )
+        self.assertEqual(environ["DEBUG"], "0")
+        self.assertEqual(environ["ALLOWED_HOSTS"], "example.com")
+        self.assertEqual(applied, {"ALLOWED_HOSTS": "example.com"})
+
+    def test_missing_env_file_is_not_an_error(self) -> None:
+        """Intent: deployments configured purely by environment need no file.
+
+        Steps:
+            1. Load a path that does not exist.
+
+        Verification:
+            Nothing is applied and no exception is raised.
+        """
+        environ = {"DEBUG": "0"}
+        applied = utils.load_env_file(Path("no-such-directory/.env"), environ=environ)
+        self.assertEqual(applied, {})
+        self.assertEqual(environ, {"DEBUG": "0"})
 
 
 class SettingsHelpersTest(SimpleTestCase):
