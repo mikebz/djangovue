@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript-typescript', 'python' ]
+        language: [ 'javascript', 'python' ]
 
     steps:
     - name: Checkout repository
@@ -57,6 +57,3 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4.37.3
-      with:
-        # Keeps each matrix leg's results distinct instead of overwriting.
-        category: "/language:${{ matrix.language }}"
