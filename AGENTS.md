@@ -91,8 +91,11 @@ the reasoning comes from an external source.
 
 - `ruff` and `black` both run in `make lint`. Format with `make format` rather
   than hand-aligning code.
-- `mypy` runs with `disallow_untyped_defs = true`. **Every function needs full
-  type annotations**, including `-> None`. Migrations are excluded.
+- `mypy` runs in `strict` mode with the `django-stubs` plugin. **Every function
+  needs full type annotations**, including `-> None`, and module-level settings
+  carry explicit annotations too. Migrations are excluded. The plugin imports
+  `djangovue.settings`, so `make typecheck` only works with the environment the
+  `Makefile` loads from `.env.example` — run it through `make`, not bare `mypy`.
 - **No function name may exceed 50 characters.** This applies to test functions
   too — if a name does not fit, the test is usually covering too much.
 - Docstrings are Google-style with `Args:`/`Returns:`/`Raises:` sections, and
@@ -101,6 +104,10 @@ the reasoning comes from an external source.
   `get_env_int`) take an optional `environ` mapping so they can be tested
   without mutating `os.environ`. Read configuration through them instead of
   touching `os.environ` inline, and keep new config readers in that shape.
+- Responses are served under a Content Security Policy built by
+  `build_csp_policy` in `djangovue/settings.py`. Anything that loads an asset
+  from a new origin, or adds an inline script or style, has to be reflected
+  there — reach for `{{ csp_nonce }}` before reaching for `'unsafe-inline'`.
 - Broader style guidance follows *Effective Python* — see
   https://github.com/SigmaQuan/Better-Python-59-Ways.
 

@@ -5,7 +5,7 @@
       <p class="eyebrow">Django + Vue</p>
       <h1>Quick start to get your web app going by Mike Borozdin (@mikebz)</h1>
       <p class="lede">
-        A lean starter for Django 5, Vue 3, and modern JavaScript tooling.
+        A lean starter for Django 6, Vue 3, and modern JavaScript tooling.
       </p>
       <div class="actions">
         <a href="https://vuejs.org/" target="_blank" rel="noopener noreferrer"
