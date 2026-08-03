@@ -50,10 +50,10 @@ jobs:
     # autobuild step this workflow used to run was a no-op.
     # https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4.37.3
+      uses: github/codeql-action/init@v4.37.4
       with:
         languages: ${{ matrix.language }}
         build-mode: none
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4.37.3
+      uses: github/codeql-action/analyze@v4.37.4
