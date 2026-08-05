@@ -42,7 +42,7 @@ make frontend-build && make verify
 `make frontend-build` first is not optional. `make verify` renders
 `index.html`, which resolves assets through
 `frontend/dist/.vite/manifest.json`. On a fresh checkout that file does not
-exist and 9 of the 19 tests fail with `DjangoViteAssetNotFoundError` — a
+exist and 12 of the 43 tests fail with `DjangoViteAssetNotFoundError` — a
 failure that has nothing to do with your change. `make verify` itself does not
 build the frontend; CI does it in a separate step.
 
@@ -101,18 +101,19 @@ the reasoning comes from an external source.
 - Docstrings are Google-style with `Args:`/`Returns:`/`Raises:` sections, and
   every module has one. Match that, even though no linter enforces it.
 - The env helpers in `djangovue/utils.py` (`get_env_bool`, `get_env_list`,
-  `get_env_int`) take an optional `environ` mapping so they can be tested
-  without mutating `os.environ`. Read configuration through them instead of
-  touching `os.environ` inline, and keep new config readers in that shape.
+  `get_env_str`, `get_env_int`) take an optional `environ` mapping so they can
+  be tested without mutating `os.environ`. Read configuration through them
+  instead of touching `os.environ` inline, and keep new config readers in that
+  shape.
 - Configuration comes from `.env`, which `djangovue/settings.py` loads at import
-  time via `load_env_file`. **Real environment variables always win over the
-  file** — that is what lets Docker, Compose, CI, and the `Makefile` override a
-  single key. A new setting goes in `.env.example` and is read through the env
+  time via `load_env_file` from `djangovue/utils.py`. **Real environment
+  variables always win over the file** — that is what lets Docker, Compose, CI,
+  and the `Makefile` override a single key. A new setting goes in `.env.example` and is read through the env
   helpers; nothing should re-implement the loading.
 - Responses are served under a Content Security Policy built by
-  `build_csp_policy` in `djangovue/settings.py`. Anything that loads an asset
-  from a new origin, or adds an inline script or style, has to be reflected
-  there — reach for `{{ csp_nonce }}` before reaching for `'unsafe-inline'`.
+  `build_csp_policy` in `djangovue/utils.py` and applied as `SECURE_CSP` in
+  `djangovue/settings.py`. Anything that loads an asset from a new origin, or
+  adds an inline script or style, has to be reflected there — reach for `{{ csp_nonce }}` before reaching for `'unsafe-inline'`.
 - Broader style guidance follows *Effective Python* — see
   https://github.com/SigmaQuan/Better-Python-59-Ways.
 
@@ -126,7 +127,12 @@ the reasoning comes from an external source.
 
 **Tests**
 
-- Python tests live in `backend/tests.py`.
+- Python tests live in the `backend/tests/` package, split by subject:
+  `test_views.py` (views, routing, Vite integration, `/healthz`),
+  `test_settings.py` (`.env` parsing and loading, the env helpers), and
+  `test_security.py` (response headers, CSP construction, HSTS validation).
+  Add a test to the module that matches its subject; add a new
+  `test_<subject>.py` rather than letting one grow unfocused.
 - **Prefer test functions over test classes.** Reach for a class only when the
   test genuinely needs one — shared fixture setup that cannot be expressed as a
   plain helper, or a Django facility that requires a `TestCase` subclass.
@@ -152,6 +158,11 @@ the reasoning comes from an external source.
   lists what the test does, in order. *Verification* states exactly what is
   asserted. A test whose intent cannot be written in one sentence is testing
   more than one thing — split it.
+
+  `backend/tests/test_views.py` still carries an older `GIVEN:`/`WHEN:`/`THEN:`
+  form. That style is retired: write new tests with the outline above, and
+  convert a docstring you are already editing. Do not convert the rest as a
+  drive-by — a whole-file conversion is its own structural commit.
 
 - Settings-related tests reload `djangovue.settings` under `mock.patch.dict` —
   reuse that pattern instead of asserting against process state.
