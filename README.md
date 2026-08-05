@@ -4,6 +4,10 @@
 This is a starter project for Django with Vue.js. The frontend uses Vue 3 + Vite, and the backend uses
 Django 6 with environment-driven settings.
 
+For how the code fits together, see [ARCHITECTURE.md](ARCHITECTURE.md). For the
+rules on making changes here — including what agents must do — see
+[AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Why this starter in 2026?
 
 If you are starting a new web product in 2026, this stack is a pragmatic default:
