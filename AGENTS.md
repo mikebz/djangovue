@@ -10,6 +10,11 @@ documentation: for project structure, setup, and environment variables see
 `README.md`; for the list of available commands run `make help`, since the
 `Makefile` is the source of truth and CI calls the same targets.
 
+Keep it that way when you edit this file. This file carries **rules** — what to
+do and what not to do. When a rule needs architectural context, link to the
+section of `README.md` that explains it instead of restating the explanation
+here. A description copied into two files drifts in one of them.
+
 ## Plan large changes before writing code
 
 A change is **large** if any of these are true:
@@ -105,17 +110,14 @@ the reasoning comes from an external source.
   be tested without mutating `os.environ`. Read configuration through them
   instead of touching `os.environ` inline, and keep new config readers in that
   shape.
-- Configuration comes from `.env`, which `djangovue/settings.py` loads at import
-  time via `load_env_file` from `djangovue/utils.py`. **Real environment
-  variables always win over the file** — that is what lets Docker, Compose, CI,
-  and the `Makefile` override a single key. A new setting goes in
-  `.env.example` and is read through the env helpers; nothing should
-  re-implement the loading.
-- Responses are served under a Content Security Policy built by
-  `build_csp_policy` in `djangovue/utils.py` and applied as `SECURE_CSP` in
-  `djangovue/settings.py`. Anything that loads an asset from a new origin, or
-  adds an inline script or style, has to be reflected there — reach for
-  `{{ csp_nonce }}` before reaching for `'unsafe-inline'`.
+- Adding a setting: put it in `.env.example` with a placeholder and read it
+  through the env helpers. Never re-implement the loading or the
+  environment-beats-file precedence — see *Environment Variables* in
+  `README.md` for how that layering works.
+- Changing what the page loads: anything served from a new origin, or any
+  inline script or style, has to be reflected in the Content Security Policy,
+  and `{{ csp_nonce }}` comes before `'unsafe-inline'`. See *Content Security
+  Policy* in `README.md` for what the policy already allows.
 - Broader style guidance follows *Effective Python* — see
   https://github.com/SigmaQuan/Better-Python-59-Ways.
 
@@ -129,12 +131,9 @@ the reasoning comes from an external source.
 
 **Tests**
 
-- Python tests live in the `backend/tests/` package, split by subject:
-  `test_views.py` (views, routing, Vite integration, `/healthz`),
-  `test_settings.py` (`.env` parsing and loading, the env helpers), and
-  `test_security.py` (response headers, CSP construction, HSTS validation).
-  Add a test to the module that matches its subject; add a new
-  `test_<subject>.py` rather than letting one grow unfocused.
+- Python tests live in the `backend/tests/` package, one `test_<subject>.py`
+  per subject. Add a test to the module whose subject it matches, or start a
+  new module — do not let one grow into a catch-all.
 - **Prefer test functions over test classes.** Reach for a class only when the
   test genuinely needs one — shared fixture setup that cannot be expressed as a
   plain helper, or a Django facility that requires a `TestCase` subclass.
