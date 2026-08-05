@@ -108,12 +108,14 @@ the reasoning comes from an external source.
 - Configuration comes from `.env`, which `djangovue/settings.py` loads at import
   time via `load_env_file` from `djangovue/utils.py`. **Real environment
   variables always win over the file** — that is what lets Docker, Compose, CI,
-  and the `Makefile` override a single key. A new setting goes in `.env.example` and is read through the env
-  helpers; nothing should re-implement the loading.
+  and the `Makefile` override a single key. A new setting goes in
+  `.env.example` and is read through the env helpers; nothing should
+  re-implement the loading.
 - Responses are served under a Content Security Policy built by
   `build_csp_policy` in `djangovue/utils.py` and applied as `SECURE_CSP` in
   `djangovue/settings.py`. Anything that loads an asset from a new origin, or
-  adds an inline script or style, has to be reflected there — reach for `{{ csp_nonce }}` before reaching for `'unsafe-inline'`.
+  adds an inline script or style, has to be reflected there — reach for
+  `{{ csp_nonce }}` before reaching for `'unsafe-inline'`.
 - Broader style guidance follows *Effective Python* — see
   https://github.com/SigmaQuan/Better-Python-59-Ways.
 
