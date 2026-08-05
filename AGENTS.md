@@ -6,9 +6,19 @@ making changes.
 This is the **only** agent instruction file in the repository. There is no
 second copy under `.github/`, no per-tool variant, and no nested override — if a
 rule matters, it goes here. This file also does not duplicate other
-documentation: for project structure, setup, and environment variables see
-`README.md`; for the list of available commands run `make help`, since the
-`Makefile` is the source of truth and CI calls the same targets.
+documentation:
+
+- setup, environment variables, and deployment — `README.md`
+- how the code fits together, and where a thing lives — `ARCHITECTURE.md`
+- the list of available commands — `make help`, since the `Makefile` is the
+  source of truth and CI calls the same targets
+
+Keep it that way when you edit this file. This file carries **rules** — what to
+do and what not to do. It does not name individual functions, count tests, or
+explain how a subsystem works; that belongs in `ARCHITECTURE.md`, where one
+change updates one file. A description copied into two files drifts in one of
+them, and a rule that recites implementation detail goes stale every time the
+implementation moves.
 
 ## Plan large changes before writing code
 
@@ -39,12 +49,11 @@ tell you whether it works — that round trip is what this rule exists to avoid.
 make frontend-build && make verify
 ```
 
-`make frontend-build` first is not optional. `make verify` renders
-`index.html`, which resolves assets through
-`frontend/dist/.vite/manifest.json`. On a fresh checkout that file does not
-exist and 9 of the 19 tests fail with `DjangoViteAssetNotFoundError` — a
-failure that has nothing to do with your change. `make verify` itself does not
-build the frontend; CI does it in a separate step.
+`make frontend-build` first is not optional. Several checks render the Django
+template, which cannot resolve frontend assets until the frontend has been
+built — on a clean checkout they fail for that reason alone, with nothing wrong
+in your change. If you hit asset-resolution failures, you skipped the build;
+see *Frontend integration* in `ARCHITECTURE.md`. Do not "fix" them.
 
 A change is done when `make frontend-build && make verify` passes from a clean
 tree. Report the result honestly: never describe a partial run as a pass, and
@@ -93,40 +102,39 @@ the reasoning comes from an external source.
   than hand-aligning code.
 - `mypy` runs in `strict` mode with the `django-stubs` plugin. **Every function
   needs full type annotations**, including `-> None`, and module-level settings
-  carry explicit annotations too. Migrations are excluded. The plugin imports
-  `djangovue.settings`, which needs a `SECRET_KEY` — run `make typecheck`
-  rather than bare `mypy`, so the `.env` file gets created first.
+  carry explicit annotations too. Migrations are excluded. Run `make typecheck`
+  rather than bare `mypy` — the target prepares the environment the plugin
+  needs to import settings.
 - **No function name may exceed 50 characters.** This applies to test functions
   too — if a name does not fit, the test is usually covering too much.
 - Docstrings are Google-style with `Args:`/`Returns:`/`Raises:` sections, and
   every module has one. Match that, even though no linter enforces it.
-- The env helpers in `djangovue/utils.py` (`get_env_bool`, `get_env_list`,
-  `get_env_int`) take an optional `environ` mapping so they can be tested
-  without mutating `os.environ`. Read configuration through them instead of
-  touching `os.environ` inline, and keep new config readers in that shape.
-- Configuration comes from `.env`, which `djangovue/settings.py` loads at import
-  time via `load_env_file`. **Real environment variables always win over the
-  file** — that is what lets Docker, Compose, CI, and the `Makefile` override a
-  single key. A new setting goes in `.env.example` and is read through the env
-  helpers; nothing should re-implement the loading.
-- Responses are served under a Content Security Policy built by
-  `build_csp_policy` in `djangovue/settings.py`. Anything that loads an asset
-  from a new origin, or adds an inline script or style, has to be reflected
-  there — reach for `{{ csp_nonce }}` before reaching for `'unsafe-inline'`.
+- Read configuration through the env helpers in `djangovue/utils.py`, never by
+  touching `os.environ` inline, and keep new config readers in the shape of the
+  ones already there.
+- Adding a setting: put it in `.env.example` with a placeholder and read it
+  through the env helpers. Never re-implement the loading or the
+  environment-beats-file precedence.
+- Changing what the page loads: anything served from a new origin, or any
+  inline script or style, has to be reflected in the Content Security Policy,
+  and `{{ csp_nonce }}` comes before `'unsafe-inline'`.
 - Broader style guidance follows *Effective Python* — see
   https://github.com/SigmaQuan/Better-Python-59-Ways.
 
 **Frontend**
 
-- The Vite entry point is named in both `vite.config.js` and
-  `backend/templates/index.html`. Renaming it means updating both.
-- `publicDir` is disabled; static assets go through Django's staticfiles.
+- The Vite entry point is named in both the Vite config and the Django
+  template. Renaming it means updating both.
+- Static assets go through Django's staticfiles, not Vite's public directory.
+  Do not add a second static pipeline.
 - There is no JS linter or JS test runner. Frontend verification is the build
   plus the template and server e2e checks.
 
 **Tests**
 
-- Python tests live in `backend/tests.py`.
+- Python tests live in the `backend/tests/` package, one `test_<subject>.py`
+  per subject. Add a test to the module whose subject it matches, or start a
+  new module — do not let one grow into a catch-all.
 - **Prefer test functions over test classes.** Reach for a class only when the
   test genuinely needs one — shared fixture setup that cannot be expressed as a
   plain helper, or a Django facility that requires a `TestCase` subclass.
@@ -153,8 +161,13 @@ the reasoning comes from an external source.
   asserted. A test whose intent cannot be written in one sentence is testing
   more than one thing — split it.
 
-- Settings-related tests reload `djangovue.settings` under `mock.patch.dict` —
-  reuse that pattern instead of asserting against process state.
+  Some older tests still carry a `GIVEN:`/`WHEN:`/`THEN:` form. That style is
+  retired: write new tests with the outline above, and convert a docstring you
+  are already editing. Do not convert the rest as a drive-by — a whole-file
+  conversion is its own structural commit.
+
+- Settings-related tests reload the settings module under a patched
+  environment — reuse that pattern instead of asserting against process state.
 
 ## Git and pull requests
 
