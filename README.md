@@ -1,6 +1,10 @@
 # djangovue
 ![Vue.js Logo](https://github.com/mikebz/djangovue/raw/master/frontend/img/logo.png "Vue.js")
 
+[![CI](https://github.com/mikebz/djangovue/actions/workflows/ci.yml/badge.svg)](https://github.com/mikebz/djangovue/actions/workflows/ci.yml)
+[![Security](https://github.com/mikebz/djangovue/actions/workflows/security.yml/badge.svg)](https://github.com/mikebz/djangovue/actions/workflows/security.yml)
+[![CodeQL](https://github.com/mikebz/djangovue/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/mikebz/djangovue/actions/workflows/codeql-analysis.yml)
+
 This is a starter project for Django with Vue.js. The frontend uses Vue 3 + Vite, and the backend uses
 Django 6 with environment-driven settings.
 
