@@ -146,7 +146,7 @@ def get_env_list(
     raw_value = env.get(name)
     if raw_value is None:
         return [] if default is None else list(default)
-    return [stripped for item in raw_value.split(",") if (stripped := item.strip())]
+    return [s for s in map(str.strip, raw_value.split(",")) if s]
 
 
 def get_env_str(
