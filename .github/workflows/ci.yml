@@ -5,10 +5,12 @@ on:
     branches: [ master, main ]
     paths-ignore:
       - 'docs/**'
+      - '*.md'
   pull_request:
     branches: [ master, main ]
     paths-ignore:
       - 'docs/**'
+      - '*.md'
   workflow_dispatch:
 
 # Read-only by default; no job here needs to write to the repository.
