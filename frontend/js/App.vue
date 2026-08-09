@@ -19,6 +19,14 @@
   </main>
 </template>
 
+<script setup>
+/**
+ * Main application component.
+ *
+ * @component App
+ */
+</script>
+
 <style scoped>
 :global(body) {
   margin: 0;

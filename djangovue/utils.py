@@ -1,4 +1,5 @@
-"""
+"""Utility functions for Django + Vue configuration.
+
 Author: Mike Borozdin (mikebz@)
 """
 

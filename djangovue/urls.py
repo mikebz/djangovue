@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 
 Author: Mike Borozdin (mikebz@)
+
 """
 
 from django.contrib import admin
