@@ -3,8 +3,12 @@ name: CI
 on:
   push:
     branches: [ master, main ]
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches: [ master, main ]
+    paths-ignore:
+      - 'docs/**'
   workflow_dispatch:
 
 # Read-only by default; no job here needs to write to the repository.
