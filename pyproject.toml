@@ -10,7 +10,7 @@ license = {text = "MIT"}
 # Django 6.0 dropped Python 3.11; 3.12 is the floor for the whole project.
 requires-python = ">=3.12"
 dependencies = [
-    "django>=6.0,<6.1",
+    "django>=6.1,<6.2",
     "django-vite>=3.1.0",
     "dj-database-url>=2.2.0",
     "gunicorn>=23.0.0",
@@ -27,7 +27,7 @@ dev = [
     "mypy>=1.11.0",
     # Django ships no inline annotations; these stubs are what make the
     # `disallow_untyped_defs` type check meaningful across Django call sites.
-    "django-stubs[compatible-mypy]>=6.0.7",
+    "django-stubs[compatible-mypy]>=6.0.8",
 ]
 
 [build-system]
