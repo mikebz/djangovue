@@ -164,6 +164,7 @@ Required:
 - `ALLOWED_HOSTS`: Comma-separated hostnames allowed when `DEBUG=0`.
 
 Optional:
+- `CSRF_TRUSTED_ORIGINS`: Comma-separated trusted origins for CSRF protection. Required on HTTPS. E.g. `https://*.run.app` for Cloud Run.
 - `DEBUG`: `1/true` for development mode, defaults to `0`.
 - `DATABASE_URL`: Database connection URL. Defaults to local SQLite.
 - `DB_CONN_MAX_AGE`: Database persistent connection age in seconds (default `60`).
