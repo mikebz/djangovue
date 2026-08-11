@@ -161,9 +161,10 @@ reason; `make docker-run` passes it in with `--env-file`.
 
 Required:
 - `SECRET_KEY`: Django secret key.
-- `ALLOWED_HOSTS`: Comma-separated hostnames allowed when `DEBUG=0`.
+- `ALLOWED_HOSTS`: Comma-separated hostnames allowed when `DEBUG=0`. E.g. `.run.app` for Cloud Run.
 
 Optional:
+- `CSRF_TRUSTED_ORIGINS`: Comma-separated trusted origins for CSRF protection. Required on HTTPS. E.g. `https://*.run.app` for Cloud Run HTTPS, or `http://*.run.app,https://*.run.app` to support both HTTP and HTTPS.
 - `DEBUG`: `1/true` for development mode, defaults to `0`.
 - `DATABASE_URL`: Database connection URL. Defaults to local SQLite.
 - `DB_CONN_MAX_AGE`: Database persistent connection age in seconds (default `60`).
