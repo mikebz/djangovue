@@ -237,6 +237,10 @@ endpoint at `/healthz`. It ships without a `.env` file, so configuration is
 passed in at run time — `make docker-run` forwards your local one with
 `--env-file .env`, and any `-e` flag overrides a single key from it.
 
+By default, the container is configured to serve static files directly using WhiteNoise.
+For higher traffic production environments, you might want to consider moving your
+static files to a Google Cloud Storage (GCS) bucket or similar object storage.
+
 The Compose stack is for development: it mounts the working tree, runs
 `runserver` so edits reload, reads the same `.env`, and points Django at the
 Vite dev server running in the `frontend` service.
