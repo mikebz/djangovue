@@ -107,6 +107,23 @@ class EnvFileLoadingTest(SimpleTestCase):
         self.assertEqual(applied, {})
         self.assertEqual(environ, {"DEBUG": "0"})
 
+    def test_load_handles_utf8_bom(self) -> None:
+        """Intent: a .env file with a Byte Order Mark (BOM) is parsed correctly.
+
+        Steps:
+            1. Write a .env file defining SECRET_KEY, starting with a BOM.
+            2. Load it into a clean environment.
+
+        Verification:
+            The BOM is stripped and the key is loaded properly.
+        """
+        environ: dict[str, str] = {}
+        applied = utils.load_env_file(
+            self._write_env("\ufeffSECRET_KEY=123\n"), environ=environ
+        )
+        self.assertEqual(environ, {"SECRET_KEY": "123"})
+        self.assertEqual(applied, {"SECRET_KEY": "123"})
+
 
 class SettingsHelpersTest(SimpleTestCase):
     """Test environment parsing helpers used by project settings."""
