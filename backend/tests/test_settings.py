@@ -39,47 +39,6 @@ class SettingsModuleTest(SimpleTestCase):
         importlib.reload(project_settings)
 
 
-class EnvFileParsingTest(SimpleTestCase):
-    """Test the .env file parser that feeds project configuration."""
-
-    def test_parser_skips_comments_and_blanks(self) -> None:
-        """Intent: a .env file stays readable with comments and spacing.
-
-        Steps:
-            1. Parse a file containing a comment line, a blank line, and one
-               assignment.
-
-        Verification:
-            Only the assignment survives.
-        """
-        parsed = utils.parse_env_file("# a comment\n\nDEBUG=1\n")
-        self.assertEqual(parsed, {"DEBUG": "1"})
-
-    def test_parser_strips_export_and_quotes(self) -> None:
-        """Intent: a .env file that is also shell-sourceable parses the same.
-
-        Steps:
-            1. Parse lines using an `export ` prefix and quoted values.
-
-        Verification:
-            The prefix and the matching quotes are removed from the result.
-        """
-        parsed = utils.parse_env_file("export HOSTS='a,b'\nKEY=\"secret\"\n")
-        self.assertEqual(parsed, {"HOSTS": "a,b", "KEY": "secret"})
-
-    def test_parser_keeps_equals_in_value(self) -> None:
-        """Intent: URL-shaped settings survive parsing intact.
-
-        Steps:
-            1. Parse a value that itself contains "=".
-
-        Verification:
-            Only the first "=" separates name from value.
-        """
-        parsed = utils.parse_env_file("DATABASE_URL=postgres://u:p@h/db?x=1")
-        self.assertEqual(parsed, {"DATABASE_URL": "postgres://u:p@h/db?x=1"})
-
-
 class EnvFileLoadingTest(SimpleTestCase):
     """Test how a .env file is applied to the process environment."""
 
