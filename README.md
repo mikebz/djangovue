@@ -161,7 +161,7 @@ reason; `make docker-run` passes it in with `--env-file`.
 
 Required:
 - `SECRET_KEY`: Django secret key.
-- `ALLOWED_HOSTS`: Comma-separated hostnames allowed when `DEBUG=0`.
+- `ALLOWED_HOSTS`: Comma-separated hostnames allowed when `DEBUG=0`. E.g. `.run.app` for Cloud Run.
 
 Optional:
 - `CSRF_TRUSTED_ORIGINS`: Comma-separated trusted origins for CSRF protection. Required on HTTPS. E.g. `https://*.run.app` for Cloud Run.
