@@ -90,8 +90,3 @@ plugins = ["mypy_django_plugin.main"]
 # The plugin imports these settings, which read .env at import time, so
 # `make typecheck` needs that file - the Makefile creates it from .env.example.
 django_settings_module = "djangovue.settings"
-
-[dependency-groups]
-dev = [
-    "django-stubs>=6.0.8",
-]
