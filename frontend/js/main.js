@@ -1,6 +1,4 @@
 /**
- * Main entry point for the Vue application.
- *
  * Author: Mike Borozdin (mikebz@)
  */
 import { createApp } from 'vue'
