@@ -75,6 +75,7 @@ INSTALLED_APPS: list[str] = [
 
 MIDDLEWARE: list[str] = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     # Django 6.0 ships Content-Security-Policy support; the middleware reads
     # SECURE_CSP below and makes a per-request nonce available to templates.
     "django.middleware.csp.ContentSecurityPolicyMiddleware",

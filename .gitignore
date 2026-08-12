@@ -23,6 +23,7 @@ node_modules/
 # Build outputs
 frontend/bundles/*
 frontend/dist/
+staticfiles/
 build/
 
 # Vite
