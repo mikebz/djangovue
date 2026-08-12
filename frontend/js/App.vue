@@ -3,11 +3,18 @@
   <main class="app-shell">
     <section class="hero">
       <p class="eyebrow">Django + Vue</p>
-      <h1>Quick start to get your web app going by Mike Borozdin (@mikebz)</h1>
+      <h1>QUICK START</h1>
       <p class="lede">
-        A lean starter for Django 6, Vue 3, and modern JavaScript tooling.
+        A pragmatic default for shipping web apps fast with Django 6, Vue 3, and modern tooling. Delivers a pre-validated, connected starter with minimal configuration overhead—a proven path to launch without complex infrastructure upfront.
       </p>
       <div class="actions">
+        <a
+          href="https://github.com/mikebz/djangovue"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="primary-action"
+          >GitHub Repository</a
+        >
         <a href="https://vuejs.org/" target="_blank" rel="noopener noreferrer"
           >Vue docs</a
         >
@@ -59,16 +66,17 @@
 
 h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 7vw, 5rem);
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
   line-height: 0.95;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
 }
 
 .lede {
   margin: 1.25rem 0 0;
   max-width: 34rem;
-  font-size: 1.1rem;
-  line-height: 1.7;
+  font-size: 1.05rem;
+  line-height: 1.65;
   color: rgba(23, 49, 61, 0.82);
 }
 
@@ -90,7 +98,16 @@ h1 {
   font-weight: 700;
   color: #17313d;
   background: #d8f0e6;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.actions a.primary-action {
+  background: #17313d;
+  color: #ffffff;
+}
+
+.actions a.primary-action:hover {
+  background: #0f6779;
 }
 
 .actions a:hover {
