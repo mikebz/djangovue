@@ -55,6 +55,24 @@ def load_env_file(
     return applied
 
 
+def _get_env_value(
+    name: str,
+    environ: Mapping[str, str] | None = None,
+) -> str | None:
+    """Return the raw value of an environment variable.
+
+    Args:
+        name: The name of the environment variable.
+        environ: Optional mapping to use instead of `os.environ`.
+
+    Returns:
+        The raw string value of the environment variable, or None if missing.
+
+    """
+    env = os.environ if environ is None else environ
+    return env.get(name)
+
+
 def get_env_bool(
     name: str,
     *,
@@ -80,8 +98,7 @@ def get_env_bool(
         True
 
     """
-    env = os.environ if environ is None else environ
-    raw_value = env.get(name)
+    raw_value = _get_env_value(name, environ)
     if raw_value is None:
         return default
     return raw_value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
@@ -112,8 +129,7 @@ def get_env_list(
         ['local']
 
     """
-    env = os.environ if environ is None else environ
-    raw_value = env.get(name)
+    raw_value = _get_env_value(name, environ)
     if raw_value is None:
         return [] if default is None else list(default)
     return [s for s in map(str.strip, raw_value.split(",")) if s]
@@ -144,8 +160,7 @@ def get_env_str(
         '127.0.0.1'
 
     """
-    env = os.environ if environ is None else environ
-    raw_value = env.get(name)
+    raw_value = _get_env_value(name, environ)
     if raw_value is None or not raw_value.strip():
         return default
     return raw_value.strip()
@@ -177,8 +192,7 @@ def get_env_int(
         8000
 
     """
-    env = os.environ if environ is None else environ
-    raw_value = env.get(name)
+    raw_value = _get_env_value(name, environ)
     if raw_value is None:
         return default
     try:
