@@ -24,12 +24,12 @@ manage = "djangovue.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.16.1",
+    "ruff>=0.16.3",
     "black>=23.0.0",
     "mypy>=1.11.0",
     # Django ships no inline annotations; these stubs are what make the
     # `disallow_untyped_defs` type check meaningful across Django call sites.
-    "django-stubs[compatible-mypy]>=6.0.8",
+    "django-stubs[compatible-mypy]>=6.1.0",
 ]
 
 [build-system]
