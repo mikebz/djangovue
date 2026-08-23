@@ -40,7 +40,7 @@ def load_env_file(
     env = os.environ if environ is None else environ
     try:
         parsed = dotenv_values(path, encoding="utf-8-sig")
-    except Exception:
+    except (OSError, UnicodeDecodeError):
         return {}
 
     if not parsed:
