@@ -3,6 +3,8 @@
 Author: Mike Borozdin (mikebz@)
 """
 
+from django.conf import settings
+from django.core.management import call_command
 from django.test import Client, SimpleTestCase, TestCase
 
 
@@ -96,6 +98,12 @@ class ViteIntegrationTest(TestCase):
     Ensures build assets are properly integrated.
     """
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        """Collect static files before running Vite integration tests."""
+        super().setUpClass()
+        call_command("collectstatic", interactive=False, verbosity=0)
+
     def test_vite_assets_are_loaded(self) -> None:
         """GIVEN: A built frontend with Vite.
 
@@ -116,7 +124,7 @@ class ViteIntegrationTest(TestCase):
         """
         # This test ensures static file serving is configured
         # In production, this would be handled by a web server
-        response = self.client.get("/")
+        response = self.client.get(f"{settings.STATIC_URL}admin/css/base.css")
         self.assertEqual(response.status_code, 200)
 
 
