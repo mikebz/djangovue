@@ -7,7 +7,6 @@ for the production deployment checklist this module follows.
 Author: Mike Borozdin (mikebz@)
 """
 
-import os
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +40,7 @@ load_env_file(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY: str | None = os.environ.get("SECRET_KEY")
+SECRET_KEY: str = get_env_str("SECRET_KEY", default="")
 if not SECRET_KEY:
     raise ImproperlyConfigured("SECRET_KEY environment variable must be set")
 
