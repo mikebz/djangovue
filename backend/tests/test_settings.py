@@ -107,6 +107,37 @@ class EnvFileLoadingTest(SimpleTestCase):
         self.assertEqual(applied, {})
         self.assertEqual(environ, {"DEBUG": "0"})
 
+    def test_load_ignores_directory_as_file(self) -> None:
+        """Intent: An OSError (e.g., path is a directory) is safely ignored.
+
+        Steps:
+            1. Pass a directory path instead of a file.
+
+        Verification:
+            The function catches IsADirectoryError (an OSError) and returns an empty dict.
+        """
+        environ: dict[str, str] = {}
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        applied = utils.load_env_file(directory.name, environ=environ)
+        self.assertEqual(applied, {})
+
+    def test_load_ignores_invalid_unicode(self) -> None:
+        """Intent: A UnicodeDecodeError is safely ignored.
+
+        Steps:
+            1. Write a file with invalid UTF-8 bytes.
+            2. Attempt to load it.
+
+        Verification:
+            The function catches UnicodeDecodeError and returns an empty dict.
+        """
+        environ: dict[str, str] = {}
+        path = self._write_env("")
+        path.write_bytes(b"\x80abc")
+        applied = utils.load_env_file(path, environ=environ)
+        self.assertEqual(applied, {})
+
     def test_load_handles_utf8_bom(self) -> None:
         """Intent: a .env file with a Byte Order Mark (BOM) is parsed correctly.
 
