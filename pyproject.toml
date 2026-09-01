@@ -13,8 +13,8 @@ dependencies = [
     "django>=6.1,<6.2",
     "django-vite>=3.1.0",
     "dj-database-url>=2.2.0",
-    "gunicorn>=23.0.0",
-    "python-dotenv>=1.2.2",
+    "gunicorn>=26.2.0",
+    "python-dotenv>=1.2.3",
     "whitenoise>=6.12.0",
 ]
 
@@ -24,9 +24,9 @@ manage = "djangovue.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.16.3",
+    "ruff>=0.16.5",
     "black>=23.0.0",
-    "mypy>=1.11.0",
+    "mypy>=2.3.1",
     # Django ships no inline annotations; these stubs are what make the
     # `disallow_untyped_defs` type check meaningful across Django call sites.
     "django-stubs[compatible-mypy]>=6.1.0",
