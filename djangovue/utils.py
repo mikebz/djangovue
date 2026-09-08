@@ -73,6 +73,9 @@ def _get_env_value(
     return env.get(name)
 
 
+_TRUTHY_STRINGS: frozenset[str] = frozenset({"1", "true", "t", "yes", "y", "on"})
+
+
 def get_env_bool(
     name: str,
     *,
@@ -101,7 +104,7 @@ def get_env_bool(
     raw_value = _get_env_value(name, environ)
     if raw_value is None:
         return default
-    return raw_value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+    return raw_value.strip().lower() in _TRUTHY_STRINGS
 
 
 def get_env_list(
