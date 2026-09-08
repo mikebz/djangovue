@@ -73,7 +73,7 @@ def _get_env_value(
     return env.get(name)
 
 
-_TRUTHY_STRINGS: set[str] = {"1", "true", "t", "yes", "y", "on"}
+_TRUTHY_STRINGS: frozenset[str] = frozenset({"1", "true", "t", "yes", "y", "on"})
 
 
 def get_env_bool(
