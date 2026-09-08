@@ -29,5 +29,15 @@ def healthz(_request: HttpRequest) -> JsonResponse:
     Returns:
         A JSON response indicating the service is healthy.
 
+    Examples:
+        >>> from django.http import HttpRequest
+        >>> import json
+        >>> req = HttpRequest()
+        >>> res = healthz(req)
+        >>> res.status_code
+        200
+        >>> json.loads(res.content)
+        {'status': 'ok'}
+
     """
     return JsonResponse({"status": "ok"})
