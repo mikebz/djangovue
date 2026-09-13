@@ -1,4 +1,5 @@
-"""
+"""Settings utility functions.
+
 Author: Mike Borozdin (mikebz@)
 """
 
