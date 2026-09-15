@@ -24,7 +24,7 @@ manage = "djangovue.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.16.6",
+    "ruff>=0.16.7",
     "black>=23.0.0",
     "mypy>=2.3.1",
     # Django ships no inline annotations; these stubs are what make the
