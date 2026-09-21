@@ -11,7 +11,7 @@ license = {text = "MIT"}
 requires-python = ">=3.12"
 dependencies = [
     "django>=6.1.1,<6.2",
-    "django-vite>=3.1.0",
+    "django-vite>=3.2.0",
     "dj-database-url>=2.2.0",
     "gunicorn>=26.2.0",
     "python-dotenv>=1.2.3",
@@ -24,12 +24,12 @@ manage = "djangovue.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.16.7",
+    "ruff>=0.16.8",
     "black>=23.0.0",
     "mypy>=2.3.1",
     # Django ships no inline annotations; these stubs are what make the
     # `disallow_untyped_defs` type check meaningful across Django call sites.
-    "django-stubs[compatible-mypy]>=6.1.0",
+    "django-stubs[compatible-mypy]>=6.1.1",
 ]
 
 [build-system]
