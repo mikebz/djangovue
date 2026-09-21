@@ -320,9 +320,19 @@ def validate_hsts_preload(
         include_subdomains: Whether HSTS covers subdomains.
         max_age: The HSTS max-age in seconds.
 
+    Returns:
+        None.
+
     Raises:
         ImproperlyConfigured: If preload is requested without the two
             conditions the preload list requires.
+
+    Examples:
+        >>> validate_hsts_preload(
+        ...     preload=True,
+        ...     include_subdomains=True,
+        ...     max_age=31536000,
+        ... )
 
     """
     if not preload:
