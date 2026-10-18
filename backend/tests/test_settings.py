@@ -20,10 +20,14 @@ class SettingsModuleTest(SimpleTestCase):
     """Test module-level settings evaluations."""
 
     def test_missing_secret_key_raises_error(self) -> None:
-        """GIVEN: A missing SECRET_KEY in the environment.
+        """Intent: a missing SECRET_KEY raises ImproperlyConfigured.
 
-        WHEN: The settings module is evaluated
-        THEN: It should raise ImproperlyConfigured
+        Steps:
+            1. Clear the environment.
+            2. Evaluate the settings module.
+
+        Verification:
+            It raises ImproperlyConfigured.
         """
         # The settings module loads .env before reading SECRET_KEY, so the
         # loader is stubbed out too - otherwise a developer's .env would
