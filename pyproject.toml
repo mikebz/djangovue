@@ -10,7 +10,7 @@ license = {text = "MIT"}
 # Django 6.0 dropped Python 3.11; 3.12 is the floor for the whole project.
 requires-python = ">=3.12"
 dependencies = [
-    "django>=6.1.2,<6.2",
+    "django>=6.1.3,<6.2",
     "django-vite>=3.2.0",
     "dj-database-url>=2.2.0",
     "gunicorn>=26.2.0",
@@ -24,7 +24,7 @@ manage = "djangovue.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.17.3",
+    "ruff>=0.17.4",
     "black>=26.10.1",
     "mypy>=2.4.1",
     # Django ships no inline annotations; these stubs are what make the
