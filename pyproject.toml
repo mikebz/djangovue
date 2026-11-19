@@ -13,7 +13,7 @@ dependencies = [
     "django>=6.1.3,<6.2",
     "django-vite>=3.2.0",
     "dj-database-url>=2.2.0",
-    "gunicorn>=26.2.0",
+    "gunicorn>=27.0.1",
     "python-dotenv>=1.2.4",
     "whitenoise>=6.12.0",
 ]
@@ -24,8 +24,7 @@ manage = "djangovue.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.17.4",
-    "black>=26.10.1",
+    "ruff>=0.17.5",
     "mypy>=2.4.1",
     # Django ships no inline annotations; these stubs are what make the
     # `disallow_untyped_defs` type check meaningful across Django call sites.
@@ -51,30 +50,12 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "E501", # line too long, handled by black
+    "E501", # line too long, handled by ruff format
     "B008", # do not perform function calls in argument defaults
 ]
 
 [tool.ruff.lint.isort]
 known-first-party = ["djangovue", "backend"]
-
-[tool.black]
-line-length = 88
-target-version = ['py312']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
 
 [tool.mypy]
 python_version = "3.12"
@@ -83,7 +64,14 @@ python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 exclude = ["backend/migrations/"]
-files = ["backend", "djangovue", "manage.py", "scripts/e2e_template_check.py"]
+files = [
+    "backend",
+    "djangovue",
+    "manage.py",
+    "scripts/e2e_docker_smoke.py",
+    "scripts/e2e_template_check.py",
+    "scripts/e2e_vite_dev_check.py",
+]
 plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]

@@ -1,19 +1,17 @@
 """Test suite for backend views and routing."""
 
+import tempfile
+
 from django.conf import settings
 from django.core.management import call_command
-from django.test import Client, SimpleTestCase, TestCase
+from django.test import SimpleTestCase, override_settings
+from django.urls import resolve
+
+from backend import views
 
 
-class IndexViewTest(TestCase):
-    """Test the main index view that serves the Vue.js application.
-
-    Following TDD principles with clear test naming and structure.
-    """
-
-    def setUp(self) -> None:
-        """Set up test client for each test method."""
-        self.client = Client()
+class IndexViewTest(SimpleTestCase):
+    """Test the main index view that serves the Vue.js application."""
 
     def test_index_view_returns_200_status_code(self) -> None:
         """Intent: the root URL serves a successful response.
@@ -64,16 +62,19 @@ class IndexViewTest(TestCase):
         self.assertContains(response, "Vue.js App")
 
     def test_index_view_contains_javascript_bundle(self) -> None:
-        """Intent: the root URL includes JavaScript bundle references.
+        """Intent: the root URL loads the built JavaScript entry module.
 
         Steps:
             1. GET "/".
 
         Verification:
-            The response includes JavaScript bundle references.
+            The response has a module <script> whose src is a .js file. A bare
+            ".js" substring is not enough: the "Vue.js App" title contains one.
         """
         response = self.client.get("/")
-        self.assertContains(response, ".js")
+        self.assertRegex(
+            response.content.decode(), r'<script type="module"[^>]*\ssrc="[^"]+\.js"'
+        )
 
     def test_index_view_contains_css_bundle(self) -> None:
         """Intent: the root URL includes CSS bundle references.
@@ -87,30 +88,67 @@ class IndexViewTest(TestCase):
         response = self.client.get("/")
         self.assertContains(response, ".css")
 
+    def test_index_view_declares_language(self) -> None:
+        """Intent: assistive technology knows which language the page is in.
 
-class URLConfigTest(TestCase):
+        Steps:
+            1. GET "/".
+
+        Verification:
+            The <html> element carries lang="en" (WCAG 2.1 success criterion
+            3.1.1, Language of Page).
+        """
+        response = self.client.get("/")
+        self.assertContains(response, '<html lang="en">')
+
+    def test_index_view_sets_mobile_viewport(self) -> None:
+        """Intent: phones lay the page out at device width, not desktop width.
+
+        Steps:
+            1. GET "/".
+
+        Verification:
+            The page has a viewport meta tag with width=device-width.
+        """
+        response = self.client.get("/")
+        self.assertContains(
+            response,
+            '<meta name="viewport" content="width=device-width, initial-scale=1">',
+        )
+
+    def test_index_view_links_favicon(self) -> None:
+        """Intent: browsers find the favicon, which lives under STATIC_URL.
+
+        Steps:
+            1. GET "/".
+
+        Verification:
+            The page links the favicon at its static URL. Without the link,
+            browsers request /favicon.ico, which is a 404.
+        """
+        response = self.client.get("/")
+        self.assertContains(response, '<link rel="icon" href="/static/favicon.ico">')
+
+
+class URLConfigTest(SimpleTestCase):
     """Test URL configuration and routing.
 
     Ensures proper URL patterns are working.
     """
 
     def test_root_url_resolves_to_index_view(self) -> None:
-        """Intent: the root URL resolves to the index view.
+        """Intent: the root URL is routed to the index view.
 
         Steps:
-            1. GET "/".
+            1. Resolve "/" against the project URLconf.
 
         Verification:
-            It resolves to the index view and contains expected content.
+            The resolved view function is backend.views.index.
         """
-        response = self.client.get("/")
-        # Test that the response is successful
-        self.assertEqual(response.status_code, 200)
-        # Test that it contains expected content
-        self.assertContains(response, "Vue.js App")
+        self.assertIs(resolve("/").func, views.index)
 
 
-class ViteIntegrationTest(TestCase):
+class ViteIntegrationTest(SimpleTestCase):
     """Test Django-Vite integration.
 
     Ensures build assets are properly integrated.
@@ -118,8 +156,14 @@ class ViteIntegrationTest(TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Collect static files before running Vite integration tests."""
+        """Collect static files into a temporary STATIC_ROOT for these tests.
+
+        Collecting into the real STATIC_ROOT would leave staticfiles/ in the
+        working tree after every test run.
+        """
         super().setUpClass()
+        static_root = cls.enterClassContext(tempfile.TemporaryDirectory())
+        cls.enterClassContext(override_settings(STATIC_ROOT=static_root))
         call_command("collectstatic", interactive=False, verbosity=0)
 
     def test_vite_assets_are_loaded(self) -> None:
@@ -156,7 +200,14 @@ class HealthEndpointTest(SimpleTestCase):
     """Test health endpoint behavior used by container checks."""
 
     def test_healthz_returns_ok_json(self) -> None:
-        """Return a healthy JSON payload on the health endpoint."""
+        """Intent: container probes see the app as healthy when it is up.
+
+        Steps:
+            1. GET "/healthz".
+
+        Verification:
+            The status is 200 and the JSON body is {"status": "ok"}.
+        """
         response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})

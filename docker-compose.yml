@@ -18,9 +18,11 @@ services:
     environment:
       DEBUG: "1"
       ALLOWED_HOSTS: localhost,127.0.0.1
-      # Assets come from the frontend service, reachable under its name.
+      # Django only writes this host into <script src>; the browser on the host
+      # machine fetches it, through the port the frontend service publishes.
+      # The Compose service name `frontend` does not resolve outside Docker.
       DJANGO_VITE_DEV_MODE: "1"
-      DJANGO_VITE_DEV_SERVER_HOST: frontend
+      DJANGO_VITE_DEV_SERVER_HOST: localhost
       DJANGO_VITE_DEV_SERVER_PORT: "3000"
     # runserver rather than gunicorn: the bind mount above is only worth having
     # with a reloader watching it.
@@ -37,12 +39,18 @@ services:
       start_period: 40s
 
   frontend:
-    image: node:22-alpine
+    # Pinned by digest like the Dockerfile images. Dependabot is configured
+    # for the Dockerfile only, so bump this by hand.
+    image: node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a
     working_dir: /app
     volumes:
       - .:/app
       - /app/node_modules
-    command: npm run dev -- --host 0.0.0.0
+    # The anonymous volume above starts empty, hiding the host's node_modules
+    # (built for the host OS), so dependencies are installed into it first.
+    # `exec` replaces the shell, so the dev server is PID 1 and receives the
+    # SIGTERM from `docker compose down` instead of waiting out the timeout.
+    command: sh -c "npm ci && exec npm run dev -- --host 0.0.0.0"
     ports:
       - "3000:3000"
     environment:

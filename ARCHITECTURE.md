@@ -15,7 +15,7 @@ the rules about how to make a change here, see `AGENTS.md`.
 | --- | --- |
 | `djangovue/` | Project configuration: settings, URL root, WSGI/ASGI entry points, shared helpers |
 | `backend/` | The Django app: views, URLs, templates, tests |
-| `frontend/` | Vue source (`js/`) and image assets, built by Vite into `frontend/dist/` |
+| `frontend/` | Vue source (`js/`), shared styles (`css/`) and image assets, built by Vite into `frontend/dist/` |
 | `scripts/` | End-to-end checks invoked by `make e2e` |
 
 `manage.py` and `djangovue/cli.py` are the same entry point twice. `cli.py` is
@@ -41,7 +41,7 @@ still works.
 and the variable reference are documented in *Environment Variables* in
 `README.md`; this section is about where the code lives.
 
-`djangovue/utils.py` holds the pieces settings is assembled from:
+Settings is assembled from two helper modules. `djangovue/env.py` holds:
 
 - **`.env` parsing and loading.** Settings applies `.env` at import time rather
   than leaving it to a task runner, which is what makes `uv run manage ...`,
@@ -53,6 +53,9 @@ and the variable reference are documented in *Environment Variables* in
   Each takes an optional `environ` mapping, which is what lets the tests
   exercise them without mutating `os.environ`. New configuration readers should
   keep that shape.
+
+`djangovue/security.py` holds:
+
 - **Security policy construction.** The Content Security Policy is built here
   and applied as `SECURE_CSP` in settings, using Django 6's native CSP support.
   Host formatting is shared with the dev-server origins so IPv6 hosts get
@@ -82,9 +85,17 @@ Vite builds `frontend/js/main.js` into `frontend/dist/` with a manifest, and
   the CSP widens to admit it. The `Makefile` forces it off for the targets that
   must render against the manifest.
 
+Vite writes its content-hashed output under `assets/`, and settings tells
+WhiteNoise that everything under `/static/assets/` is immutable, so browsers
+cache it for good. Moving Vite's output elsewhere means changing that pattern
+too, and nothing unhashed may be put under `assets/`.
+
 `publicDir` is disabled in the Vite config: static assets are served through
 Django's staticfiles rather than copied by Vite, so there is one static
-pipeline instead of two.
+pipeline instead of two. Staticfiles sees only `frontend/dist/` and the app
+`static/` directories, never the Vue source: an image the Vue code uses is
+imported so Vite hashes it into the build, and a file a Django template links
+to directly goes in `backend/static/`.
 
 ## Tests
 
@@ -94,5 +105,11 @@ policy construction. Settings-related tests reload the settings module under a
 patched environment rather than asserting against process state, because
 settings is evaluated at import time.
 
-`make e2e` adds two checks that the unit tests cannot cover: a template render
-against the built manifest, and a server boot smoke test.
+`make e2e` adds three checks that the unit tests cannot cover: a template
+render against the built manifest, a server boot smoke test, and a dev-mode
+check that every script the page names is served by a real Vite dev server.
+
+Those run under `runserver` or Vite. `make docker-smoke` covers the deployed
+path: it starts the built image (gunicorn, `DEBUG` off, WhiteNoise) and checks
+`/healthz`, the page, and every static asset the page links. CI runs it in the
+Docker job.

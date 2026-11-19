@@ -3,7 +3,7 @@
   <main class="app-shell">
     <section class="hero">
       <p class="eyebrow">Django + Vue</p>
-      <h1>QUICK START</h1>
+      <h1>Quick start</h1>
       <p class="lede">
         A pragmatic default for shipping web apps fast with Django 6, Vue 3, and modern tooling. Delivers a pre-validated, connected starter with minimal configuration overhead—a proven path to launch without complex infrastructure upfront.
       </p>
@@ -27,17 +27,6 @@
 </template>
 
 <style scoped>
-:global(body) {
-  margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(82, 183, 136, 0.16), transparent 42%),
-    linear-gradient(180deg, #f7fafc 0%, #edf4f7 100%);
-  color: #17313d;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-}
-
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -48,10 +37,10 @@
 .hero {
   width: min(100%, 44rem);
   padding: clamp(2rem, 4vw, 4rem);
-  border: 1px solid rgba(23, 49, 61, 0.08);
+  border: 1px solid var(--color-border);
   border-radius: 1.5rem;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 20px 60px rgba(23, 49, 61, 0.12);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   backdrop-filter: blur(14px);
 }
 
@@ -61,7 +50,7 @@
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #4b7a86;
+  color: var(--color-eyebrow);
 }
 
 h1 {
@@ -77,7 +66,7 @@ h1 {
   max-width: 34rem;
   font-size: 1.05rem;
   line-height: 1.65;
-  color: rgba(23, 49, 61, 0.82);
+  color: var(--color-ink-soft);
 }
 
 .actions {
@@ -96,29 +85,29 @@ h1 {
   border-radius: 999px;
   text-decoration: none;
   font-weight: 700;
-  color: #17313d;
-  background: #d8f0e6;
+  color: var(--color-ink);
+  background: var(--color-button);
   transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
 .actions a.primary-action {
-  background: #17313d;
-  color: #ffffff;
+  background: var(--color-ink);
+  color: var(--color-on-ink);
 }
 
 .actions a.primary-action:hover {
-  background: #0f6779;
+  background: var(--color-accent);
 }
 
 .actions a:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(23, 49, 61, 0.14);
+  box-shadow: var(--shadow-raised);
 }
 
 .actions a:focus-visible {
-  outline: 3px solid #0f6779;
+  outline: 3px solid var(--color-accent);
   outline-offset: 2px;
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(23, 49, 61, 0.14);
+  box-shadow: var(--shadow-raised);
 }
 </style>

@@ -7,10 +7,12 @@ import sys
 import django
 from django.template.loader import render_to_string
 
+# Each snippet must be specific enough not to match elsewhere: a bare ".js"
+# would match the "Vue.js App" title even with no script tag on the page.
 EXPECTED_SNIPPETS: tuple[str, ...] = (
     "Vue.js App",
     '<div id="app">',
-    ".js",
+    '<script type="module"',
 )
 
 
