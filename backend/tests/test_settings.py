@@ -186,11 +186,25 @@ class SettingsHelpersTest(SimpleTestCase):
     """Test environment parsing helpers used by project settings."""
 
     def test_get_env_bool_defaults_when_missing(self) -> None:
-        """Use the default bool when an environment variable is missing."""
+        """Intent: an unset boolean variable falls back to its default.
+
+        Steps:
+            1. Read DEBUG from an empty environment without passing a default.
+
+        Verification:
+            The result is False.
+        """
         self.assertFalse(env.get_env_bool("DEBUG", environ={}))
 
     def test_get_env_bool_parses_truthy_values(self) -> None:
-        """Parse accepted truthy strings to True."""
+        """Intent: a documented true spelling reads as True.
+
+        Steps:
+            1. Read DEBUG set to "true".
+
+        Verification:
+            The result is True.
+        """
         environ = {"DEBUG": "true"}
         self.assertTrue(env.get_env_bool("DEBUG", environ=environ))
 
@@ -239,7 +253,14 @@ class SettingsHelpersTest(SimpleTestCase):
         self.assertTrue(env.get_env_bool("DEBUG", default=True, environ=environ))
 
     def test_get_env_list_splits_values(self) -> None:
-        """Split comma-separated list values and trim whitespace."""
+        """Intent: a comma-separated variable becomes a list of clean items.
+
+        Steps:
+            1. Read ALLOWED_HOSTS set to "example.com, api.example.com".
+
+        Verification:
+            The result is both hosts, with surrounding whitespace trimmed.
+        """
         environ = {"ALLOWED_HOSTS": "example.com, api.example.com"}
         self.assertEqual(
             env.get_env_list("ALLOWED_HOSTS", environ=environ),
@@ -247,25 +268,53 @@ class SettingsHelpersTest(SimpleTestCase):
         )
 
     def test_get_env_list_returns_empty_when_missing(self) -> None:
-        """Return an empty list when an environment variable is missing and no default is provided."""
+        """Intent: an unset list variable with no default reads as empty.
+
+        Steps:
+            1. Read a missing variable with no default.
+
+        Verification:
+            The result is an empty list.
+        """
         self.assertEqual(env.get_env_list("MISSING", environ={}), [])
 
     def test_get_env_list_uses_default_when_missing(self) -> None:
-        """Return the default sequence as a list when an environment variable is missing."""
+        """Intent: an unset list variable falls back to its default as a list.
+
+        Steps:
+            1. Read a missing variable with the tuple default ("a", "b").
+
+        Verification:
+            The result is the list ["a", "b"].
+        """
         self.assertEqual(
             env.get_env_list("MISSING", default=("a", "b"), environ={}),
             ["a", "b"],
         )
 
     def test_get_env_str_uses_default_when_missing(self) -> None:
-        """Return the default string when an environment variable is missing."""
+        """Intent: an unset string variable falls back to its default.
+
+        Steps:
+            1. Read HOST from an empty environment with default "127.0.0.1".
+
+        Verification:
+            The result is "127.0.0.1".
+        """
         self.assertEqual(
             env.get_env_str("HOST", default="127.0.0.1", environ={}),
             "127.0.0.1",
         )
 
     def test_get_env_str_strips_whitespace(self) -> None:
-        """Trim surrounding whitespace from string values."""
+        """Intent: stray whitespace around a string value is ignored.
+
+        Steps:
+            1. Read HOST set to "  ::1  ".
+
+        Verification:
+            The result is "::1".
+        """
         environ = {"HOST": "  ::1  "}
         self.assertEqual(
             env.get_env_str("HOST", default="x", environ=environ),
@@ -273,7 +322,14 @@ class SettingsHelpersTest(SimpleTestCase):
         )
 
     def test_get_env_str_falls_back_when_blank(self) -> None:
-        """Treat a blank value as absent and use the default."""
+        """Intent: a blank string value means "not set".
+
+        Steps:
+            1. Read HOST set to whitespace only, with default "127.0.0.1".
+
+        Verification:
+            The result is the default, "127.0.0.1".
+        """
         environ = {"HOST": "   "}
         self.assertEqual(
             env.get_env_str("HOST", default="127.0.0.1", environ=environ),
@@ -281,14 +337,28 @@ class SettingsHelpersTest(SimpleTestCase):
         )
 
     def test_get_env_int_uses_default(self) -> None:
-        """Use the default integer when an environment variable is missing."""
+        """Intent: an unset integer variable falls back to its default.
+
+        Steps:
+            1. Read DB_CONN_MAX_AGE from an empty environment with default 60.
+
+        Verification:
+            The result is 60.
+        """
         self.assertEqual(
             env.get_env_int("DB_CONN_MAX_AGE", default=60, environ={}),
             60,
         )
 
     def test_get_env_int_parses_integer(self) -> None:
-        """Parse integer values from environment variables."""
+        """Intent: an integer variable is read as an int.
+
+        Steps:
+            1. Read DB_CONN_MAX_AGE set to "120".
+
+        Verification:
+            The result is the integer 120.
+        """
         environ = {"DB_CONN_MAX_AGE": "120"}
         self.assertEqual(
             env.get_env_int("DB_CONN_MAX_AGE", default=0, environ=environ),
@@ -296,7 +366,14 @@ class SettingsHelpersTest(SimpleTestCase):
         )
 
     def test_get_env_int_raises_for_invalid_value(self) -> None:
-        """Raise ImproperlyConfigured for non-integer environment values."""
+        """Intent: a non-numeric integer setting stops startup.
+
+        Steps:
+            1. Read DB_CONN_MAX_AGE set to "not-a-number".
+
+        Verification:
+            ImproperlyConfigured is raised.
+        """
         environ = {"DB_CONN_MAX_AGE": "not-a-number"}
         with self.assertRaises(ImproperlyConfigured):
             env.get_env_int("DB_CONN_MAX_AGE", default=60, environ=environ)
