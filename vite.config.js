@@ -6,17 +6,19 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  // Must match Django's STATIC_URL: in dev mode django-vite requests
+  // `<dev server>/static/<entry>`, so Vite has to serve under the same prefix.
+  // https://github.com/MrBin99/django-vite#configuration
+  base: '/static/',
   build: {
     outDir: 'frontend/dist',
     emptyOutDir: true,
     manifest: true,
+    // Output keeps Vite's default `assets/[name]-[hash]` naming. Django serves
+    // everything under /static/assets/ as immutable, so only content-hashed
+    // files may land there.
     rollupOptions: {
-      input: 'frontend/js/main.js',
-      output: {
-        entryFileNames: '[name]-[hash].js',
-        chunkFileNames: '[name]-[hash].js',
-        assetFileNames: '[name]-[hash].[ext]'
-      }
+      input: 'frontend/js/main.js'
     }
   },
   // No `cors` override: Vite's default allows only localhost and 127.0.0.1

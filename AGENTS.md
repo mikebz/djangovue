@@ -109,7 +109,7 @@ the reasoning comes from an external source.
   too — if a name does not fit, the test is usually covering too much.
 - Docstrings are Google-style with `Args:`/`Returns:`/`Raises:` sections, and
   every module has one. Match that, even though no linter enforces it.
-- Read configuration through the env helpers in `djangovue/utils.py`, never by
+- Read configuration through the env helpers in `djangovue/env.py`, never by
   touching `os.environ` inline, and keep new config readers in the shape of the
   ones already there.
 - Adding a setting: put it in `.env.example` with a placeholder and read it

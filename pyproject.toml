@@ -64,7 +64,13 @@ python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 exclude = ["backend/migrations/"]
-files = ["backend", "djangovue", "manage.py", "scripts/e2e_template_check.py"]
+files = [
+    "backend",
+    "djangovue",
+    "manage.py",
+    "scripts/e2e_template_check.py",
+    "scripts/e2e_vite_dev_check.py",
+]
 plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]
