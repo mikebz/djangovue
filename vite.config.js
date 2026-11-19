@@ -10,13 +10,11 @@ export default defineConfig({
     outDir: 'frontend/dist',
     emptyOutDir: true,
     manifest: true,
+    // Output keeps Vite's default `assets/[name]-[hash]` naming. Django serves
+    // everything under static/assets/ as immutable, so only content-hashed
+    // files may land there.
     rollupOptions: {
-      input: 'frontend/js/main.js',
-      output: {
-        entryFileNames: '[name]-[hash].js',
-        chunkFileNames: '[name]-[hash].js',
-        assetFileNames: '[name]-[hash].[ext]'
-      }
+      input: 'frontend/js/main.js'
     }
   },
   server: {

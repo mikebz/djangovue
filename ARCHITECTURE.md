@@ -82,6 +82,11 @@ Vite builds `frontend/js/main.js` into `frontend/dist/` with a manifest, and
   the CSP widens to admit it. The `Makefile` forces it off for the targets that
   must render against the manifest.
 
+Vite writes its content-hashed output under `assets/`, and settings tells
+WhiteNoise that everything under `static/assets/` is immutable, so browsers
+cache it for good. Moving Vite's output elsewhere means changing that pattern
+too, and nothing unhashed may be put under `assets/`.
+
 `publicDir` is disabled in the Vite config: static assets are served through
 Django's staticfiles rather than copied by Vite, so there is one static
 pipeline instead of two.

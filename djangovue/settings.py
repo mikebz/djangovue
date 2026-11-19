@@ -7,6 +7,7 @@ for the production deployment checklist this module follows.
 Author: Mike Borozdin (mikebz@)
 """
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -161,6 +162,20 @@ STATICFILES_DIRS: list[Path] = [
     BASE_DIR / "frontend",
     BASE_DIR / "frontend" / "dist",
 ]
+
+# collectstatic writes a gzip copy next to each file, and WhiteNoise serves it
+# to clients that accept it.
+# https://whitenoise.readthedocs.io/en/stable/django.html#add-compression-support
+STORAGES: dict[str, dict[str, str]] = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
+
+# WhiteNoise only recognises the hashes Django's manifest storage adds, so Vite's
+# content-hashed output would get a 60-second max-age. Vite writes every hashed
+# file under assets/, and nothing else lives there.
+# https://whitenoise.readthedocs.io/en/stable/django.html#WHITENOISE_IMMUTABLE_FILE_TEST
+WHITENOISE_IMMUTABLE_FILE_TEST: str = rf"^{re.escape(STATIC_URL)}assets/"
 
 
 # Vite configuration
