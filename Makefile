@@ -25,7 +25,7 @@ run e2e check test: export DJANGO_VITE_DEV_MODE := 0
 .PHONY: help ensure-uv setup install run migrate makemigrations shell superuser \
         collectstatic status test e2e check lint lint-fix format typecheck verify \
         frontend-install frontend-dev frontend-watch frontend-preview frontend-build \
-        prod-build docker-build docker-run docker-dev clean clean-all
+        prod-build docker-build docker-smoke docker-run docker-dev clean clean-all
 
 help: ## Show this help message
 	@printf "Django + Vue commands\n\n"
@@ -129,6 +129,11 @@ prod-build: install frontend-build collectstatic ## Build for production
 
 docker-build: ## Build Docker image
 	docker build -t djangovue:latest .
+
+# Plain python3: the script uses only the standard library, so the CI job that
+# runs it needs neither uv nor the project's dependencies.
+docker-smoke: docker-build ## Run the built image and check it serves the app
+	python3 scripts/e2e_docker_smoke.py
 
 # The image carries no .env (.dockerignore keeps it out), so configuration is
 # passed in. DJANGO_VITE_DEV_MODE is forced off because the image serves the

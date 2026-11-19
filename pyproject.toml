@@ -68,6 +68,7 @@ files = [
     "backend",
     "djangovue",
     "manage.py",
+    "scripts/e2e_docker_smoke.py",
     "scripts/e2e_template_check.py",
     "scripts/e2e_vite_dev_check.py",
 ]

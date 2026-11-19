@@ -108,3 +108,8 @@ settings is evaluated at import time.
 `make e2e` adds three checks that the unit tests cannot cover: a template
 render against the built manifest, a server boot smoke test, and a dev-mode
 check that every script the page names is served by a real Vite dev server.
+
+Those run under `runserver` or Vite. `make docker-smoke` covers the deployed
+path: it starts the built image (gunicorn, `DEBUG` off, WhiteNoise) and checks
+`/healthz`, the page, and every static asset the page links. CI runs it in the
+Docker job.
