@@ -12,8 +12,8 @@ from unittest import mock
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
+from djangovue import env
 from djangovue import settings as project_settings
-from djangovue import utils
 
 
 class SettingsModuleTest(SimpleTestCase):
@@ -32,7 +32,7 @@ class SettingsModuleTest(SimpleTestCase):
         # The settings module loads .env before reading SECRET_KEY, so the
         # loader is stubbed out too - otherwise a developer's .env would
         # repopulate the environment this test just cleared.
-        with mock.patch.object(utils, "load_env_file", return_value={}):
+        with mock.patch.object(env, "load_env_file", return_value={}):
             with mock.patch.dict(os.environ, clear=True):
                 with self.assertRaisesMessage(
                     ImproperlyConfigured, "SECRET_KEY environment variable must be set"
@@ -73,7 +73,7 @@ class EnvFileLoadingTest(SimpleTestCase):
             The value from the file is applied and reported as applied.
         """
         environ: dict[str, str] = {}
-        applied = utils.load_env_file(self._write_env("DEBUG=1\n"), environ=environ)
+        applied = env.load_env_file(self._write_env("DEBUG=1\n"), environ=environ)
         self.assertEqual(environ, {"DEBUG": "1"})
         self.assertEqual(applied, {"DEBUG": "1"})
 
@@ -89,7 +89,7 @@ class EnvFileLoadingTest(SimpleTestCase):
             file, and only the latter is reported as applied.
         """
         environ = {"DEBUG": "0"}
-        applied = utils.load_env_file(
+        applied = env.load_env_file(
             self._write_env("DEBUG=1\nALLOWED_HOSTS=example.com\n"),
             environ=environ,
         )
@@ -107,7 +107,7 @@ class EnvFileLoadingTest(SimpleTestCase):
             Nothing is applied and no exception is raised.
         """
         environ = {"DEBUG": "0"}
-        applied = utils.load_env_file(Path("no-such-directory/.env"), environ=environ)
+        applied = env.load_env_file(Path("no-such-directory/.env"), environ=environ)
         self.assertEqual(applied, {})
         self.assertEqual(environ, {"DEBUG": "0"})
 
@@ -123,7 +123,7 @@ class EnvFileLoadingTest(SimpleTestCase):
         environ: dict[str, str] = {}
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        applied = utils.load_env_file(directory.name, environ=environ)
+        applied = env.load_env_file(directory.name, environ=environ)
         self.assertEqual(applied, {})
 
     def test_load_ignores_invalid_unicode(self) -> None:
@@ -139,7 +139,7 @@ class EnvFileLoadingTest(SimpleTestCase):
         environ: dict[str, str] = {}
         path = self._write_env("")
         path.write_bytes(b"\x80abc")
-        applied = utils.load_env_file(path, environ=environ)
+        applied = env.load_env_file(path, environ=environ)
         self.assertEqual(applied, {})
 
     def test_load_handles_utf8_bom(self) -> None:
@@ -153,7 +153,7 @@ class EnvFileLoadingTest(SimpleTestCase):
             The BOM is stripped and the key is loaded properly.
         """
         environ: dict[str, str] = {}
-        applied = utils.load_env_file(
+        applied = env.load_env_file(
             self._write_env("\ufeffSECRET_KEY=123\n"), environ=environ
         )
         self.assertEqual(environ, {"SECRET_KEY": "123"})
@@ -172,7 +172,7 @@ class SettingsHelpersTest(SimpleTestCase):
         Verification:
             The result is False.
         """
-        self.assertFalse(utils.get_env_bool("DEBUG", environ={}))
+        self.assertFalse(env.get_env_bool("DEBUG", environ={}))
 
     def test_get_env_bool_parses_truthy_values(self) -> None:
         """Intent: a documented true spelling reads as True.
@@ -184,7 +184,7 @@ class SettingsHelpersTest(SimpleTestCase):
             The result is True.
         """
         environ = {"DEBUG": "true"}
-        self.assertTrue(utils.get_env_bool("DEBUG", environ=environ))
+        self.assertTrue(env.get_env_bool("DEBUG", environ=environ))
 
     def test_get_env_bool_parses_falsy_values(self) -> None:
         """Intent: the documented false spellings all read as False.
@@ -198,7 +198,7 @@ class SettingsHelpersTest(SimpleTestCase):
         for value in ["0", "false", "f", "no", "n", "off", "OFF", "False"]:
             with self.subTest(value=value):
                 environ = {"DEBUG": value}
-                self.assertFalse(utils.get_env_bool("DEBUG", environ=environ))
+                self.assertFalse(env.get_env_bool("DEBUG", environ=environ))
 
     def test_get_env_bool_rejects_unknown_values(self) -> None:
         """Intent: a typo in a boolean setting stops startup, not reads False.
@@ -216,7 +216,7 @@ class SettingsHelpersTest(SimpleTestCase):
                 with self.assertRaisesMessage(
                     ImproperlyConfigured, "SECURE_SSL_REDIRECT"
                 ):
-                    utils.get_env_bool("SECURE_SSL_REDIRECT", environ=environ)
+                    env.get_env_bool("SECURE_SSL_REDIRECT", environ=environ)
 
     def test_get_env_bool_blank_uses_default(self) -> None:
         """Intent: an empty assignment such as `DEBUG=` means "not set".
@@ -228,7 +228,7 @@ class SettingsHelpersTest(SimpleTestCase):
             The default is returned, matching how get_env_str treats blanks.
         """
         environ = {"DEBUG": "  "}
-        self.assertTrue(utils.get_env_bool("DEBUG", default=True, environ=environ))
+        self.assertTrue(env.get_env_bool("DEBUG", default=True, environ=environ))
 
     def test_get_env_list_splits_values(self) -> None:
         """Intent: a comma-separated variable becomes a list of clean items.
@@ -241,7 +241,7 @@ class SettingsHelpersTest(SimpleTestCase):
         """
         environ = {"ALLOWED_HOSTS": "example.com, api.example.com"}
         self.assertEqual(
-            utils.get_env_list("ALLOWED_HOSTS", environ=environ),
+            env.get_env_list("ALLOWED_HOSTS", environ=environ),
             ["example.com", "api.example.com"],
         )
 
@@ -254,7 +254,7 @@ class SettingsHelpersTest(SimpleTestCase):
         Verification:
             The result is an empty list.
         """
-        self.assertEqual(utils.get_env_list("MISSING", environ={}), [])
+        self.assertEqual(env.get_env_list("MISSING", environ={}), [])
 
     def test_get_env_list_uses_default_when_missing(self) -> None:
         """Intent: an unset list variable falls back to its default as a list.
@@ -266,7 +266,7 @@ class SettingsHelpersTest(SimpleTestCase):
             The result is the list ["a", "b"].
         """
         self.assertEqual(
-            utils.get_env_list("MISSING", default=("a", "b"), environ={}),
+            env.get_env_list("MISSING", default=("a", "b"), environ={}),
             ["a", "b"],
         )
 
@@ -280,7 +280,7 @@ class SettingsHelpersTest(SimpleTestCase):
             The result is "127.0.0.1".
         """
         self.assertEqual(
-            utils.get_env_str("HOST", default="127.0.0.1", environ={}),
+            env.get_env_str("HOST", default="127.0.0.1", environ={}),
             "127.0.0.1",
         )
 
@@ -295,7 +295,7 @@ class SettingsHelpersTest(SimpleTestCase):
         """
         environ = {"HOST": "  ::1  "}
         self.assertEqual(
-            utils.get_env_str("HOST", default="x", environ=environ),
+            env.get_env_str("HOST", default="x", environ=environ),
             "::1",
         )
 
@@ -310,7 +310,7 @@ class SettingsHelpersTest(SimpleTestCase):
         """
         environ = {"HOST": "   "}
         self.assertEqual(
-            utils.get_env_str("HOST", default="127.0.0.1", environ=environ),
+            env.get_env_str("HOST", default="127.0.0.1", environ=environ),
             "127.0.0.1",
         )
 
@@ -324,7 +324,7 @@ class SettingsHelpersTest(SimpleTestCase):
             The result is 60.
         """
         self.assertEqual(
-            utils.get_env_int("DB_CONN_MAX_AGE", default=60, environ={}),
+            env.get_env_int("DB_CONN_MAX_AGE", default=60, environ={}),
             60,
         )
 
@@ -339,7 +339,7 @@ class SettingsHelpersTest(SimpleTestCase):
         """
         environ = {"DB_CONN_MAX_AGE": "120"}
         self.assertEqual(
-            utils.get_env_int("DB_CONN_MAX_AGE", default=0, environ=environ),
+            env.get_env_int("DB_CONN_MAX_AGE", default=0, environ=environ),
             120,
         )
 
@@ -354,4 +354,4 @@ class SettingsHelpersTest(SimpleTestCase):
         """
         environ = {"DB_CONN_MAX_AGE": "not-a-number"}
         with self.assertRaises(ImproperlyConfigured):
-            utils.get_env_int("DB_CONN_MAX_AGE", default=60, environ=environ)
+            env.get_env_int("DB_CONN_MAX_AGE", default=60, environ=environ)

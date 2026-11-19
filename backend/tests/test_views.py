@@ -91,6 +91,34 @@ class IndexViewTest(SimpleTestCase):
         response = self.client.get("/")
         self.assertContains(response, ".css")
 
+    def test_index_view_declares_language(self) -> None:
+        """Intent: assistive technology knows which language the page is in.
+
+        Steps:
+            1. GET "/".
+
+        Verification:
+            The <html> element carries lang="en" (WCAG 2.1 success criterion
+            3.1.1, Language of Page).
+        """
+        response = self.client.get("/")
+        self.assertContains(response, '<html lang="en">')
+
+    def test_index_view_sets_mobile_viewport(self) -> None:
+        """Intent: phones lay the page out at device width, not desktop width.
+
+        Steps:
+            1. GET "/".
+
+        Verification:
+            The page has a viewport meta tag with width=device-width.
+        """
+        response = self.client.get("/")
+        self.assertContains(
+            response,
+            '<meta name="viewport" content="width=device-width, initial-scale=1">',
+        )
+
     def test_index_view_links_favicon(self) -> None:
         """Intent: browsers find the favicon, which lives under STATIC_URL.
 

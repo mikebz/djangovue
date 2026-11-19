@@ -7,7 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 from django.utils.csp import CSP
 
-from djangovue import utils
+from djangovue import security
 
 
 class SecurityHeaderTest(SimpleTestCase):
@@ -71,7 +71,7 @@ class CspPolicyTest(SimpleTestCase):
             script-src and style-src allow only 'self' and the nonce
             placeholder - no third-party origin and no inline escape hatch.
         """
-        policy = utils.build_csp_policy(
+        policy = security.build_csp_policy(
             dev_mode=False,
             dev_server_host="127.0.0.1",
             dev_server_port=3000,
@@ -89,7 +89,7 @@ class CspPolicyTest(SimpleTestCase):
             script-src allows the dev server's HTTP origin and connect-src
             allows its websocket origin.
         """
-        policy = utils.build_csp_policy(
+        policy = security.build_csp_policy(
             dev_mode=True,
             dev_server_host="1.2.3.4",
             dev_server_port=5173,
@@ -108,8 +108,8 @@ class CspPolicyTest(SimpleTestCase):
             The HTTP and websocket origins carry the brackets a URL authority
             needs, matching the URL django-vite builds from the same host.
         """
-        host = utils.format_url_host("::1")
-        policy = utils.build_csp_policy(
+        host = security.format_url_host("::1")
+        policy = security.build_csp_policy(
             dev_mode=True,
             dev_server_host=host,
             dev_server_port=3000,
@@ -127,12 +127,12 @@ class CspPolicyTest(SimpleTestCase):
         Verification:
             'unsafe-inline' is present in style-src for dev mode only.
         """
-        dev_policy = utils.build_csp_policy(
+        dev_policy = security.build_csp_policy(
             dev_mode=True,
             dev_server_host="127.0.0.1",
             dev_server_port=3000,
         )
-        built_policy = utils.build_csp_policy(
+        built_policy = security.build_csp_policy(
             dev_mode=False,
             dev_server_host="127.0.0.1",
             dev_server_port=3000,
@@ -153,8 +153,8 @@ class UrlHostFormattingTest(SimpleTestCase):
         Verification:
             Both come back exactly as given.
         """
-        self.assertEqual(utils.format_url_host("127.0.0.1"), "127.0.0.1")
-        self.assertEqual(utils.format_url_host("frontend"), "frontend")
+        self.assertEqual(security.format_url_host("127.0.0.1"), "127.0.0.1")
+        self.assertEqual(security.format_url_host("frontend"), "frontend")
 
     def test_ipv6_host_is_bracketed(self) -> None:
         """Intent: a bare IPv6 literal is bracketed before a port is appended.
@@ -165,7 +165,7 @@ class UrlHostFormattingTest(SimpleTestCase):
         Verification:
             The result is "[::1]".
         """
-        self.assertEqual(utils.format_url_host("::1"), "[::1]")
+        self.assertEqual(security.format_url_host("::1"), "[::1]")
 
     def test_bracketed_host_is_not_double_wrapped(self) -> None:
         """Intent: an already-bracketed literal is left alone.
@@ -176,7 +176,7 @@ class UrlHostFormattingTest(SimpleTestCase):
         Verification:
             The result is still "[::1]".
         """
-        self.assertEqual(utils.format_url_host("[::1]"), "[::1]")
+        self.assertEqual(security.format_url_host("[::1]"), "[::1]")
 
 
 class HstsPreloadValidationTest(SimpleTestCase):
@@ -191,7 +191,7 @@ class HstsPreloadValidationTest(SimpleTestCase):
         Verification:
             No exception is raised.
         """
-        utils.validate_hsts_preload(
+        security.validate_hsts_preload(
             preload=False,
             include_subdomains=False,
             max_age=0,
@@ -210,10 +210,10 @@ class HstsPreloadValidationTest(SimpleTestCase):
         with self.assertRaisesMessage(
             ImproperlyConfigured, "SECURE_HSTS_INCLUDE_SUBDOMAINS must be enabled"
         ):
-            utils.validate_hsts_preload(
+            security.validate_hsts_preload(
                 preload=True,
                 include_subdomains=False,
-                max_age=utils.HSTS_PRELOAD_MIN_SECONDS,
+                max_age=security.HSTS_PRELOAD_MIN_SECONDS,
             )
 
     def test_preload_needs_one_year_max_age(self) -> None:
@@ -228,7 +228,7 @@ class HstsPreloadValidationTest(SimpleTestCase):
         with self.assertRaisesMessage(
             ImproperlyConfigured, "SECURE_HSTS_SECONDS must be at least 31536000"
         ):
-            utils.validate_hsts_preload(
+            security.validate_hsts_preload(
                 preload=True,
                 include_subdomains=True,
                 max_age=86_400,
@@ -244,8 +244,8 @@ class HstsPreloadValidationTest(SimpleTestCase):
         Verification:
             No exception is raised.
         """
-        utils.validate_hsts_preload(
+        security.validate_hsts_preload(
             preload=True,
             include_subdomains=True,
-            max_age=utils.HSTS_PRELOAD_MIN_SECONDS,
+            max_age=security.HSTS_PRELOAD_MIN_SECONDS,
         )
