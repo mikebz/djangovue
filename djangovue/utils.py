@@ -75,6 +75,7 @@ def _get_env_value(
 
 
 _TRUTHY_STRINGS: frozenset[str] = frozenset({"1", "true", "t", "yes", "y", "on"})
+_FALSY_STRINGS: frozenset[str] = frozenset({"0", "false", "f", "no", "n", "off"})
 
 
 def get_env_bool(
@@ -85,13 +86,20 @@ def get_env_bool(
 ) -> bool:
     """Return an environment variable as a boolean.
 
+    Anything outside the accepted spellings is an error rather than False, so
+    a typo such as `SECURE_SSL_REDIRECT=ture` stops startup instead of quietly
+    turning a security setting off.
+
     Args:
         name: The name of the environment variable.
-        default: The default value to return if the variable is missing.
+        default: The default value to return if the variable is missing or blank.
         environ: Optional mapping to use instead of `os.environ`.
 
     Returns:
         The evaluated boolean value of the environment variable.
+
+    Raises:
+        ImproperlyConfigured: If the value is not a recognised boolean.
 
     Examples:
         >>> get_env_bool("DEBUG", environ={"DEBUG": "1"})
@@ -103,9 +111,17 @@ def get_env_bool(
 
     """
     raw_value = _get_env_value(name, environ)
-    if raw_value is None:
+    if raw_value is None or not raw_value.strip():
         return default
-    return raw_value.strip().lower() in _TRUTHY_STRINGS
+    value = raw_value.strip().lower()
+    if value in _TRUTHY_STRINGS:
+        return True
+    if value in _FALSY_STRINGS:
+        return False
+    raise ImproperlyConfigured(
+        f"{name} must be one of 1/0, true/false, t/f, yes/no, y/n, on/off, "
+        f"got {raw_value!r}"
+    )
 
 
 def get_env_list(

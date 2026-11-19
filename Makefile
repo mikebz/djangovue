@@ -84,17 +84,15 @@ e2e: ensure-uv .env frontend-build ## Run end-to-end checks (template render + s
 	uv run python scripts/e2e_template_check.py
 	./scripts/e2e_server_smoke.sh
 
-lint: ## Run code linter (ruff)
+lint: ## Run linter and format check (ruff)
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run black --check .
 
 lint-fix: ## Run linter with auto-fix
 	uv run ruff check --fix .
 
-format: ## Format code with black
+format: ## Format code (ruff)
 	uv run ruff format .
-	uv run black .
 
 typecheck: ## Run static type checking with mypy
 	uv run mypy
@@ -148,8 +146,9 @@ docker-dev: .env ## Run development environment in Docker
 # Cleanup
 clean: ## Clean up generated files
 	find . -type d \( -name __pycache__ -o -name '*.egg-info' \) -prune -exec rm -rf {} +
-	rm -rf frontend/bundles/*
+	rm -rf frontend/dist/ staticfiles/
 
-clean-all: clean ## Clean everything including dependencies
+# The lock files are committed and stay: `make setup` reinstalls the exact
+# versions they pin.
+clean-all: clean ## Clean everything including installed dependencies
 	rm -rf .venv/ node_modules/
-	rm -f uv.lock package-lock.json

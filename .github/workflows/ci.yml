@@ -43,7 +43,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v7
 
-    # ruff, black and mypy read source only, so this job skips the frontend.
+    # ruff and mypy read source only, so this job skips the frontend.
     - name: Setup toolchain
       uses: ./.github/actions/setup
 
