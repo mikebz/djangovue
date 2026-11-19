@@ -98,8 +98,8 @@ the reasoning comes from an external source.
 
 **Python**
 
-- `ruff` and `black` both run in `make lint`. Format with `make format` rather
-  than hand-aligning code.
+- `ruff` lints and formats; `make lint` checks both. Format with `make format`
+  rather than hand-aligning code.
 - `mypy` runs in `strict` mode with the `django-stubs` plugin. **Every function
   needs full type annotations**, including `-> None`, and module-level settings
   carry explicit annotations too. Migrations are excluded. Run `make typecheck`
