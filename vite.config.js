@@ -19,11 +19,13 @@ export default defineConfig({
       }
     }
   },
+  // No `cors` override: Vite's default allows only localhost and 127.0.0.1
+  // origins, which is where Django runs. `cors: true` lets any website read
+  // files from the dev server. https://vite.dev/config/server-options#server-cors
   server: {
     host: '0.0.0.0',
     port: 3000,
-    open: false,
-    cors: true
+    open: false
   },
   publicDir: false,
   css: {
