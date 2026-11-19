@@ -55,11 +55,13 @@ class SettingsModuleTest(SimpleTestCase):
         """
         environ: dict[str, str] = {}
         utils.load_env_file(project_settings.BASE_DIR / ".env.example", environ=environ)
+        # Reload under the real environment afterwards even if the reload
+        # below raises, so later tests do not see half-built settings.
+        self.addCleanup(importlib.reload, project_settings)
         with mock.patch.object(utils, "load_env_file", return_value={}):
             with mock.patch.dict(os.environ, environ, clear=True):
                 importlib.reload(project_settings)
                 name = project_settings.DATABASES["default"]["NAME"]
-        importlib.reload(project_settings)
         self.assertEqual(name, str(project_settings.BASE_DIR / "db.sqlite3"))
 
 
