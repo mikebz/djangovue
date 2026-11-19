@@ -41,7 +41,7 @@ still works.
 and the variable reference are documented in *Environment Variables* in
 `README.md`; this section is about where the code lives.
 
-`djangovue/utils.py` holds the pieces settings is assembled from:
+Settings is assembled from two helper modules. `djangovue/env.py` holds:
 
 - **`.env` parsing and loading.** Settings applies `.env` at import time rather
   than leaving it to a task runner, which is what makes `uv run manage ...`,
@@ -53,6 +53,9 @@ and the variable reference are documented in *Environment Variables* in
   Each takes an optional `environ` mapping, which is what lets the tests
   exercise them without mutating `os.environ`. New configuration readers should
   keep that shape.
+
+`djangovue/security.py` holds:
+
 - **Security policy construction.** The Content Security Policy is built here
   and applied as `SECURE_CSP` in settings, using Django 6's native CSP support.
   Host formatting is shared with the dev-server origins so IPv6 hosts get

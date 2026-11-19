@@ -12,8 +12,8 @@ from unittest import mock
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
+from djangovue import env
 from djangovue import settings as project_settings
-from djangovue import utils
 
 
 class SettingsModuleTest(SimpleTestCase):
@@ -32,7 +32,7 @@ class SettingsModuleTest(SimpleTestCase):
         # The settings module loads .env before reading SECRET_KEY, so the
         # loader is stubbed out too - otherwise a developer's .env would
         # repopulate the environment this test just cleared.
-        with mock.patch.object(utils, "load_env_file", return_value={}):
+        with mock.patch.object(env, "load_env_file", return_value={}):
             with mock.patch.dict(os.environ, clear=True):
                 with self.assertRaisesMessage(
                     ImproperlyConfigured, "SECRET_KEY environment variable must be set"
@@ -73,7 +73,7 @@ class EnvFileLoadingTest(SimpleTestCase):
             The value from the file is applied and reported as applied.
         """
         environ: dict[str, str] = {}
-        applied = utils.load_env_file(self._write_env("DEBUG=1\n"), environ=environ)
+        applied = env.load_env_file(self._write_env("DEBUG=1\n"), environ=environ)
         self.assertEqual(environ, {"DEBUG": "1"})
         self.assertEqual(applied, {"DEBUG": "1"})
 
@@ -89,7 +89,7 @@ class EnvFileLoadingTest(SimpleTestCase):
             file, and only the latter is reported as applied.
         """
         environ = {"DEBUG": "0"}
-        applied = utils.load_env_file(
+        applied = env.load_env_file(
             self._write_env("DEBUG=1\nALLOWED_HOSTS=example.com\n"),
             environ=environ,
         )
@@ -107,7 +107,7 @@ class EnvFileLoadingTest(SimpleTestCase):
             Nothing is applied and no exception is raised.
         """
         environ = {"DEBUG": "0"}
-        applied = utils.load_env_file(Path("no-such-directory/.env"), environ=environ)
+        applied = env.load_env_file(Path("no-such-directory/.env"), environ=environ)
         self.assertEqual(applied, {})
         self.assertEqual(environ, {"DEBUG": "0"})
 
@@ -123,7 +123,7 @@ class EnvFileLoadingTest(SimpleTestCase):
         environ: dict[str, str] = {}
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        applied = utils.load_env_file(directory.name, environ=environ)
+        applied = env.load_env_file(directory.name, environ=environ)
         self.assertEqual(applied, {})
 
     def test_load_ignores_invalid_unicode(self) -> None:
@@ -139,7 +139,7 @@ class EnvFileLoadingTest(SimpleTestCase):
         environ: dict[str, str] = {}
         path = self._write_env("")
         path.write_bytes(b"\x80abc")
-        applied = utils.load_env_file(path, environ=environ)
+        applied = env.load_env_file(path, environ=environ)
         self.assertEqual(applied, {})
 
     def test_load_handles_utf8_bom(self) -> None:
@@ -153,7 +153,7 @@ class EnvFileLoadingTest(SimpleTestCase):
             The BOM is stripped and the key is loaded properly.
         """
         environ: dict[str, str] = {}
-        applied = utils.load_env_file(
+        applied = env.load_env_file(
             self._write_env("\ufeffSECRET_KEY=123\n"), environ=environ
         )
         self.assertEqual(environ, {"SECRET_KEY": "123"})
@@ -165,43 +165,43 @@ class SettingsHelpersTest(SimpleTestCase):
 
     def test_get_env_bool_defaults_when_missing(self) -> None:
         """Use the default bool when an environment variable is missing."""
-        self.assertFalse(utils.get_env_bool("DEBUG", environ={}))
+        self.assertFalse(env.get_env_bool("DEBUG", environ={}))
 
     def test_get_env_bool_parses_truthy_values(self) -> None:
         """Parse accepted truthy strings to True."""
         environ = {"DEBUG": "true"}
-        self.assertTrue(utils.get_env_bool("DEBUG", environ=environ))
+        self.assertTrue(env.get_env_bool("DEBUG", environ=environ))
 
     def test_get_env_bool_parses_falsy_values(self) -> None:
         """Parse strings not in the truthy set to False."""
         for value in ["0", "false", "f", "no", "n", "off", "anything_else"]:
             with self.subTest(value=value):
                 environ = {"DEBUG": value}
-                self.assertFalse(utils.get_env_bool("DEBUG", environ=environ))
+                self.assertFalse(env.get_env_bool("DEBUG", environ=environ))
 
     def test_get_env_list_splits_values(self) -> None:
         """Split comma-separated list values and trim whitespace."""
         environ = {"ALLOWED_HOSTS": "example.com, api.example.com"}
         self.assertEqual(
-            utils.get_env_list("ALLOWED_HOSTS", environ=environ),
+            env.get_env_list("ALLOWED_HOSTS", environ=environ),
             ["example.com", "api.example.com"],
         )
 
     def test_get_env_list_returns_empty_when_missing(self) -> None:
         """Return an empty list when an environment variable is missing and no default is provided."""
-        self.assertEqual(utils.get_env_list("MISSING", environ={}), [])
+        self.assertEqual(env.get_env_list("MISSING", environ={}), [])
 
     def test_get_env_list_uses_default_when_missing(self) -> None:
         """Return the default sequence as a list when an environment variable is missing."""
         self.assertEqual(
-            utils.get_env_list("MISSING", default=("a", "b"), environ={}),
+            env.get_env_list("MISSING", default=("a", "b"), environ={}),
             ["a", "b"],
         )
 
     def test_get_env_str_uses_default_when_missing(self) -> None:
         """Return the default string when an environment variable is missing."""
         self.assertEqual(
-            utils.get_env_str("HOST", default="127.0.0.1", environ={}),
+            env.get_env_str("HOST", default="127.0.0.1", environ={}),
             "127.0.0.1",
         )
 
@@ -209,7 +209,7 @@ class SettingsHelpersTest(SimpleTestCase):
         """Trim surrounding whitespace from string values."""
         environ = {"HOST": "  ::1  "}
         self.assertEqual(
-            utils.get_env_str("HOST", default="x", environ=environ),
+            env.get_env_str("HOST", default="x", environ=environ),
             "::1",
         )
 
@@ -217,14 +217,14 @@ class SettingsHelpersTest(SimpleTestCase):
         """Treat a blank value as absent and use the default."""
         environ = {"HOST": "   "}
         self.assertEqual(
-            utils.get_env_str("HOST", default="127.0.0.1", environ=environ),
+            env.get_env_str("HOST", default="127.0.0.1", environ=environ),
             "127.0.0.1",
         )
 
     def test_get_env_int_uses_default(self) -> None:
         """Use the default integer when an environment variable is missing."""
         self.assertEqual(
-            utils.get_env_int("DB_CONN_MAX_AGE", default=60, environ={}),
+            env.get_env_int("DB_CONN_MAX_AGE", default=60, environ={}),
             60,
         )
 
@@ -232,7 +232,7 @@ class SettingsHelpersTest(SimpleTestCase):
         """Parse integer values from environment variables."""
         environ = {"DB_CONN_MAX_AGE": "120"}
         self.assertEqual(
-            utils.get_env_int("DB_CONN_MAX_AGE", default=0, environ=environ),
+            env.get_env_int("DB_CONN_MAX_AGE", default=0, environ=environ),
             120,
         )
 
@@ -240,4 +240,4 @@ class SettingsHelpersTest(SimpleTestCase):
         """Raise ImproperlyConfigured for non-integer environment values."""
         environ = {"DB_CONN_MAX_AGE": "not-a-number"}
         with self.assertRaises(ImproperlyConfigured):
-            utils.get_env_int("DB_CONN_MAX_AGE", default=60, environ=environ)
+            env.get_env_int("DB_CONN_MAX_AGE", default=60, environ=environ)
