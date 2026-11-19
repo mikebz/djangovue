@@ -19,6 +19,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 
 IMAGE: str = "djangovue:latest"
 CONTAINER_NAME: str = "djangovue-smoke"
@@ -26,6 +27,12 @@ HOST_PORT: int = 8099
 STARTUP_TIMEOUT_SECONDS: float = 60.0
 ASSET_REFERENCE: re.Pattern[str] = re.compile(
     r'<(?:script[^>]*\ssrc|link[^>]*\shref)="(/static/[^"]+)"'
+)
+# The built bundle itself: other /static/ links (the favicon) do not prove
+# that {% vite_asset %} rendered anything.
+SCRIPT_BUNDLE: re.Pattern[str] = re.compile(r'<script[^>]*\ssrc="/static/[^"]+\.js"')
+STYLESHEET_BUNDLE: re.Pattern[str] = re.compile(
+    r'<link(?=[^>]*\srel="stylesheet")[^>]*\shref="/static/[^"]+\.css"'
 )
 
 # Loopback requests must not go through an HTTP(S) proxy set in the environment.
@@ -53,18 +60,24 @@ def fetch(url: str) -> tuple[int, str]:
         return exc.code, ""
 
 
-def wait_until_healthy(base_url: str) -> bool:
+def wait_until_healthy(base_url: str, is_alive: Callable[[], bool]) -> bool:
     """Poll the health endpoint until it answers 200.
 
     Args:
         base_url: The server's base URL, without a trailing slash.
+        is_alive: Reports whether the server process is still running, so a
+            server that crashes at startup fails at once instead of after
+            the full timeout.
 
     Returns:
-        True once /healthz answers 200, False if it never does in time.
+        True once /healthz answers 200, False if the server stops or never
+        answers 200 in time.
 
     """
     deadline = time.monotonic() + STARTUP_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
+        if not is_alive():
+            return False
         try:
             if fetch(f"{base_url}/healthz")[0] == 200:
                 return True
@@ -88,15 +101,32 @@ def check_site(base_url: str) -> list[str]:
     if status != 200:
         return [f"/ -> {status}"]
     problems = [] if '<div id="app">' in page else ['/ has no <div id="app">']
+    if not SCRIPT_BUNDLE.search(page):
+        problems.append("/ has no <script> loading a /static/ .js bundle")
+    if not STYLESHEET_BUNDLE.search(page):
+        problems.append("/ has no stylesheet <link> to a /static/ .css bundle")
 
     assets = ASSET_REFERENCE.findall(page)
-    if not assets:
-        problems.append("/ references no static scripts or stylesheets")
     for path in assets:
         asset_status = fetch(urllib.parse.urljoin(base_url, path))[0]
         if asset_status != 200:
             problems.append(f"{path} -> {asset_status}")
     return problems
+
+
+def container_running() -> bool:
+    """Report whether the smoke-test container is still running.
+
+    Returns:
+        True while Docker reports the container as running.
+
+    """
+    state = subprocess.run(
+        ["docker", "inspect", "--format", "{{.State.Running}}", CONTAINER_NAME],
+        capture_output=True,
+        text=True,
+    )
+    return state.stdout.strip() == "true"
 
 
 def run_container() -> str:
@@ -140,8 +170,9 @@ def main() -> int:
     args = parser.parse_args()
 
     base_url: str = args.url.rstrip("/") if args.url else run_container()
+    is_alive: Callable[[], bool] = (lambda: True) if args.url else container_running
     try:
-        if not wait_until_healthy(base_url):
+        if not wait_until_healthy(base_url, is_alive):
             print(f"{base_url}/healthz never answered 200")
             return 1
         problems = check_site(base_url)
