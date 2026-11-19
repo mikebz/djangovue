@@ -12,7 +12,7 @@ inputs:
     default: "3.15"
   node-version:
     description: Node.js version to install. Ignored unless `node` is "true".
-    default: "22"
+    default: "26"
   node:
     description: Install Node.js and run `make frontend-install`.
     default: "false"
