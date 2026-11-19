@@ -48,7 +48,9 @@ services:
       - /app/node_modules
     # The anonymous volume above starts empty, hiding the host's node_modules
     # (built for the host OS), so dependencies are installed into it first.
-    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    # `exec` replaces the shell, so the dev server is PID 1 and receives the
+    # SIGTERM from `docker compose down` instead of waiting out the timeout.
+    command: sh -c "npm ci && exec npm run dev -- --host 0.0.0.0"
     ports:
       - "3000:3000"
     environment:
