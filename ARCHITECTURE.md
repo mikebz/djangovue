@@ -15,7 +15,7 @@ the rules about how to make a change here, see `AGENTS.md`.
 | --- | --- |
 | `djangovue/` | Project configuration: settings, URL root, WSGI/ASGI entry points, shared helpers |
 | `backend/` | The Django app: views, URLs, templates, tests |
-| `frontend/` | Vue source (`js/`) and image assets, built by Vite into `frontend/dist/` |
+| `frontend/` | Vue source (`js/`), shared styles (`css/`) and image assets, built by Vite into `frontend/dist/` |
 | `scripts/` | End-to-end checks invoked by `make e2e` |
 
 `manage.py` and `djangovue/cli.py` are the same entry point twice. `cli.py` is
