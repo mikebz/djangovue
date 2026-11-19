@@ -42,6 +42,26 @@ class SettingsModuleTest(SimpleTestCase):
         # Reload settings again with the original environment to restore state
         importlib.reload(project_settings)
 
+    def test_env_example_sqlite_path_is_absolute(self) -> None:
+        """Intent: the shipped .env.example keeps SQLite in the project root.
+
+        Steps:
+            1. Read .env.example into an empty environment.
+            2. Reload the settings module under that environment alone.
+
+        Verification:
+            The default database file is BASE_DIR/db.sqlite3. A relative
+            sqlite:/// URL would put it in whatever directory a command ran in.
+        """
+        environ: dict[str, str] = {}
+        utils.load_env_file(project_settings.BASE_DIR / ".env.example", environ=environ)
+        with mock.patch.object(utils, "load_env_file", return_value={}):
+            with mock.patch.dict(os.environ, environ, clear=True):
+                importlib.reload(project_settings)
+                name = project_settings.DATABASES["default"]["NAME"]
+        importlib.reload(project_settings)
+        self.assertEqual(name, str(project_settings.BASE_DIR / "db.sqlite3"))
+
 
 class EnvFileLoadingTest(SimpleTestCase):
     """Test how a .env file is applied to the process environment."""
