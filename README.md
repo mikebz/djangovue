@@ -28,17 +28,16 @@ You could use LLM prompts or a flexible CLI generator of course but there are tr
 
 ### Djangovue
 
-Delivers a pre-validated, connected and working started with Vite, Vue 3, and Django with minimal configuration overhead.  This has been proven
-to work for projects that got to several million dollars in revenue, so it's a well lit path.
+Delivers a pre-validated, connected and working starter with Vite, Vue 3, and Django with minimal configuration overhead.
 
 ### Generator CLIs
 
-Instantiates a infrastructure including PostgreSQL, Redis, Docker, and secure authentication pipelines. The primary drawback is 
+Instantiates infrastructure including PostgreSQL, Redis, Docker, and secure authentication pipelines. The primary drawback is 
 substantial structural complexity and needing to understand the tradeoffs that you are signing up for.  Ex: cookiecutter-django
 
 ### LLM Generated Apps
 
-Maximum flexibility, generating bespoke scaffolding. Conversely, it risks integration errors across and requires you to verify 
+Maximum flexibility, generating bespoke scaffolding. Conversely, it risks integration errors across components and requires you to verify 
 the final output.
 
 ## ⚡ Modern Package Management (UV)
@@ -67,8 +66,8 @@ uv sync --extra dev
 cp .env.example .env
 ```
 
-Django loads `.env` from the project root on startup, so `uv run python
-manage.py ...`, Gunicorn, and the test suite all see the same configuration —
+Django loads `.env` from the project root on startup, so `uv run manage ...`,
+Gunicorn, and the test suite all see the same configuration —
 nothing has to be exported into your shell. Any `make` target that starts
 Django creates `.env` from `.env.example` if it is missing, so `make setup` is
 enough on a fresh checkout.
@@ -81,12 +80,12 @@ npm run build
 
 6. Run Django migrations
 ```bash
-uv run python manage.py migrate
+uv run manage migrate
 ```
 
 7. Run the Django project
 ```bash
-uv run python manage.py runserver
+uv run manage runserver
 # Or use the Makefile:
 make run
 ```
@@ -137,7 +136,7 @@ npm run preview          # Preview production build
 
 ### Using UV directly:
 ```bash
-uv run python manage.py <command>     # Run Django commands
+uv run manage <command>               # Run Django commands
 uv add <package>                      # Add production dependency
 uv add --dev <package>                # Add development dependency
 uv sync                               # Install dependencies
@@ -204,19 +203,24 @@ Inline scripts and styles of your own should carry the per-request nonce, which
 
 ### GitHub Actions Workflows
 
-This project includes comprehensive CI/CD pipelines:
+Each workflow runs on pushes and pull requests to `master`.
 
 #### **Continuous Integration** (`ci.yml`)
-- **Python Linting**: Ruff linting and Black formatting
-- **Frontend Linting**: Build validation and asset checking
-- **Python Tests**: Django test suite
-- **Integration Tests**: Full application testing
-- **Security Scanning**: Dependency vulnerability checks
+- **Lint and Type Check**: Ruff, Black, and mypy (`make lint typecheck`)
+- **Tests and E2E**: frontend build, Django system checks, the test suite,
+  and the end-to-end checks (`make check test e2e`)
+- **Docker Build**: builds the production image
 
-#### **Dependency Management** (`dependencies.yml`)
-- **Weekly Updates**: Automated dependency updates
-- **Security Monitoring**: Vulnerability scanning and reporting
-- **Pull Requests**: Automated PRs for dependency updates
+#### **Security** (`security.yml`)
+- Audits the locked Python and npm dependencies with `pip-audit` and
+  `npm audit`, also weekly. Findings are reported as warnings, not failures.
+
+#### **CodeQL** (`codeql-analysis.yml`)
+- Static analysis of the Python and JavaScript code, also weekly.
+
+#### **Dependency updates** (`.github/dependabot.yml`)
+- Dependabot opens weekly grouped pull requests for uv, npm, GitHub Actions,
+  and Docker base images.
 
 ### Local Development with Docker
 
@@ -259,7 +263,7 @@ make docker-build
 - **Django + Vue remains a strong split**: backend-rendered pages and APIs on Django, interactive UI on Vue, without overengineering routing or deployment.
 - **Vite replaced legacy bundler complexity**: builds are fast and predictable, and local iteration is much smoother than older webpack-era setups.
 - **Strong defaults with room to grow**: start with SQLite and one service, then move to Postgres, workers, and CDN/static hosting patterns when needed.
-- **Tooling stays current**: Python 3.12+, Django 6.0, Vue 3.5, Vite 8, Ruff, Black, mypy (strict, with `django-stubs`), Docker, and CI automation are already integrated.
+- **Tooling stays current**: Python 3.12+, Django 6.1, Vue 3.5, Vite 8, Ruff, Black, mypy (strict, with `django-stubs`), Docker, and CI automation are already integrated.
 
 ## 📝 Migration Notes
 
