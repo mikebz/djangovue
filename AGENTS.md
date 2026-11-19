@@ -98,8 +98,8 @@ the reasoning comes from an external source.
 
 **Python**
 
-- `ruff` and `black` both run in `make lint`. Format with `make format` rather
-  than hand-aligning code.
+- `ruff` lints and formats; `make lint` checks both. Format with `make format`
+  rather than hand-aligning code.
 - `mypy` runs in `strict` mode with the `django-stubs` plugin. **Every function
   needs full type annotations**, including `-> None`, and module-level settings
   carry explicit annotations too. Migrations are excluded. Run `make typecheck`
@@ -135,9 +135,12 @@ the reasoning comes from an external source.
 - Python tests live in the `backend/tests/` package, one `test_<subject>.py`
   per subject. Add a test to the module whose subject it matches, or start a
   new module — do not let one grow into a catch-all.
-- **Prefer test functions over test classes.** Reach for a class only when the
-  test genuinely needs one — shared fixture setup that cannot be expressed as a
-  plain helper, or a Django facility that requires a `TestCase` subclass.
+- **Tests are methods on a test class.** `make test` runs Django's test
+  runner, which discovers only `unittest.TestCase` subclasses: a module-level
+  `def test_...()` is skipped silently, never failing. Subclass
+  `SimpleTestCase` by default and `TestCase` only when the test touches the
+  database. Group a module's tests into one class per behavior under test.
+  https://docs.python.org/3/library/unittest.html#unittest.TestLoader.loadTestsFromModule
 - Test names describe the behavior under test
   (`test_index_view_returns_200_status_code`) and stay within the 50-character
   function-name limit.
