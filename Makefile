@@ -143,8 +143,9 @@ docker-dev: .env ## Run development environment in Docker
 # Cleanup
 clean: ## Clean up generated files
 	find . -type d \( -name __pycache__ -o -name '*.egg-info' \) -prune -exec rm -rf {} +
-	rm -rf frontend/bundles/*
+	rm -rf frontend/dist/ staticfiles/
 
-clean-all: clean ## Clean everything including dependencies
+# The lock files are committed and stay: `make setup` reinstalls the exact
+# versions they pin.
+clean-all: clean ## Clean everything including installed dependencies
 	rm -rf .venv/ node_modules/
-	rm -f uv.lock package-lock.json
