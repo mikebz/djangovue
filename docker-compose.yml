@@ -39,8 +39,8 @@ services:
       start_period: 40s
 
   frontend:
-    # Pinned by digest like the Dockerfile images. Dependabot is configured
-    # for the Dockerfile only, so bump this by hand.
+    # Pinned by digest like the Dockerfile images; Dependabot tracks updates
+    # via the docker-compose ecosystem in .github/dependabot.yml.
     image: node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a
     working_dir: /app
     volumes:
