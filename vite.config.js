@@ -6,6 +6,10 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  // Must match Django's STATIC_URL: in dev mode django-vite requests
+  // `<dev server>/static/<entry>`, so Vite has to serve under the same prefix.
+  // https://github.com/MrBin99/django-vite#configuration
+  base: '/static/',
   build: {
     outDir: 'frontend/dist',
     emptyOutDir: true,
