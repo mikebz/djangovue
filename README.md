@@ -85,9 +85,16 @@ uv run python manage.py migrate
 ```
 
 7. Run the Django project
+
+`.env.example` sets `DJANGO_VITE_DEV_MODE=1`, so pages load their scripts from
+the Vite dev server, with hot module replacement. Run both:
 ```bash
-uv run python manage.py runserver
-# Or use the Makefile:
+make frontend-dev                    # terminal 1: Vite on port 3000
+uv run python manage.py runserver    # terminal 2: Django on port 8000
+```
+
+Or serve the built frontend from Django alone, with no Vite process:
+```bash
 make run
 ```
 
@@ -100,8 +107,8 @@ machine instead of the container.
 
 From inside the container, the app is available at `http://127.0.0.1:8000/`.
 
-If you want hot module replacement instead, start the Vite dev server with
-`make frontend-dev` and forward port `3000` too.
+In dev mode, forward port `3000` as well, since the browser fetches scripts from
+the Vite dev server directly.
 
 This project uses Vite for the frontend build, and the `make` targets mirror the same commands used in CI.
 
