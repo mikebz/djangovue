@@ -158,8 +158,9 @@ USE_TZ: bool = True
 STATIC_URL: str = "/static/"
 STATIC_ROOT: Path = BASE_DIR / "staticfiles"
 
+# Only the build output: listing frontend/ itself would publish the Vue source
+# and collect every built file a second time under dist/.
 STATICFILES_DIRS: list[Path] = [
-    BASE_DIR / "frontend",
     BASE_DIR / "frontend" / "dist",
 ]
 
