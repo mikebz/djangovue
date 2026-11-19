@@ -1,4 +1,1 @@
-"""Backend Django application package.
-
-Author: Mike Borozdin (mikebz@)
-"""
+"""Backend Django application package."""

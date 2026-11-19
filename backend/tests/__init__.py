@@ -1,4 +1,1 @@
-"""Backend test package.
-
-Author: Mike Borozdin (mikebz@)
-"""
+"""Backend test package."""

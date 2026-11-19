@@ -1,7 +1,4 @@
-"""Test suite for backend views and routing.
-
-Author: Mike Borozdin (mikebz@)
-"""
+"""Test suite for backend views and routing."""
 
 from django.conf import settings
 from django.core.management import call_command

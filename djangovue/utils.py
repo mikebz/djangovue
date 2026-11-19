@@ -1,7 +1,4 @@
-"""Settings utility functions.
-
-Author: Mike Borozdin (mikebz@)
-"""
+"""Settings utility functions."""
 
 import os
 from collections.abc import Mapping, MutableMapping, Sequence
