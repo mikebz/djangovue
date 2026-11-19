@@ -14,14 +14,16 @@ import dj_database_url
 from dj_database_url import DBConfig
 from django.core.exceptions import ImproperlyConfigured
 
-from djangovue.utils import (
-    build_csp_policy,
-    format_url_host,
+from djangovue.env import (
     get_env_bool,
     get_env_int,
     get_env_list,
     get_env_str,
     load_env_file,
+)
+from djangovue.security import (
+    build_csp_policy,
+    format_url_host,
     validate_hsts_preload,
 )
 
