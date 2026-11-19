@@ -1,10 +1,11 @@
-{% load django_vite %}
+{% load django_vite static %}
 
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>Django Vue.js App</title>
+  <link rel="icon" href="{% static 'favicon.ico' %}">
 </head>
 <body>
   <div id="app"></div>

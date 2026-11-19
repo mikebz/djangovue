@@ -114,7 +114,7 @@ make run            # Build frontend and start Django on one port
 make migrate        # Run migrations
 make test           # Run tests
 make lint           # Run code linter (ruff)
-make format         # Format code (black)
+make format         # Format code (ruff)
 make check          # Run Django system checks
 make verify         # Run lint, checks, tests, and e2e
 ```
@@ -157,6 +157,10 @@ Environment variables always win, so a deployment can override a single key
 without touching the file — and a deployment that passes every variable in
 needs no `.env` at all. `.env` is excluded from the Docker image for the same
 reason; `make docker-run` passes it in with `--env-file`.
+
+Boolean variables accept `1/0`, `true/false`, `t/f`, `yes/no`, `y/n` and
+`on/off`, in any case. An empty value means unset. Anything else stops startup
+with `ImproperlyConfigured`, so a typo cannot silently turn a setting off.
 
 Required:
 - `SECRET_KEY`: Django secret key.
@@ -203,10 +207,10 @@ Inline scripts and styles of your own should carry the per-request nonce, which
 
 ### GitHub Actions Workflows
 
-Each workflow runs on pushes and pull requests to `master`.
+The three workflows below run on pushes and pull requests to `master`.
 
 #### **Continuous Integration** (`ci.yml`)
-- **Lint and Type Check**: Ruff, Black, and mypy (`make lint typecheck`)
+- **Lint and Type Check**: Ruff and mypy (`make lint typecheck`)
 - **Tests and E2E**: frontend build, Django system checks, the test suite,
   and the end-to-end checks (`make check test e2e`)
 - **Docker Build**: builds the production image
@@ -218,9 +222,11 @@ Each workflow runs on pushes and pull requests to `master`.
 #### **CodeQL** (`codeql-analysis.yml`)
 - Static analysis of the Python and JavaScript code, also weekly.
 
-#### **Dependency updates** (`.github/dependabot.yml`)
-- Dependabot opens weekly grouped pull requests for uv, npm, GitHub Actions,
-  and Docker base images.
+### Dependency updates (`.github/dependabot.yml`)
+
+Dependabot, which is configured rather than run as a workflow, opens weekly
+pull requests: one grouped PR each for uv, npm, and GitHub Actions, and one PR
+per image for the Docker base images.
 
 ### Local Development with Docker
 
@@ -263,7 +269,7 @@ make docker-build
 - **Django + Vue remains a strong split**: backend-rendered pages and APIs on Django, interactive UI on Vue, without overengineering routing or deployment.
 - **Vite replaced legacy bundler complexity**: builds are fast and predictable, and local iteration is much smoother than older webpack-era setups.
 - **Strong defaults with room to grow**: start with SQLite and one service, then move to Postgres, workers, and CDN/static hosting patterns when needed.
-- **Tooling stays current**: Python 3.12+, Django 6.1, Vue 3.5, Vite 8, Ruff, Black, mypy (strict, with `django-stubs`), Docker, and CI automation are already integrated.
+- **Tooling stays current**: Python 3.12+, Django 6.1, Vue 3.5, Vite 8, Ruff, mypy (strict, with `django-stubs`), Docker, and CI automation are already integrated.
 
 ## 📝 Migration Notes
 
