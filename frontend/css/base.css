@@ -15,6 +15,18 @@
   --shadow-raised: 0 10px 24px rgba(23, 49, 61, 0.14);
 }
 
+/*
+ * Widths and heights include padding and border. With the default
+ * content-box, .hero's width: 100% plus its padding and border overflowed
+ * phone viewports, and .app-shell's min-height: 100vh plus padding always
+ * scrolled. https://developer.mozilla.org/en-US/docs/Web/CSS/box-sizing
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
