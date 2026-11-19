@@ -4,10 +4,11 @@ Author: Mike Borozdin (mikebz@)
 """
 
 import json
+import tempfile
 
 from django.conf import settings
 from django.core.management import call_command
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 
 def _built_entry_url() -> str:
@@ -28,8 +29,14 @@ class BuiltAssetServingTest(SimpleTestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Collect static files so WhiteNoise has something to serve."""
+        """Collect static files into a temporary STATIC_ROOT for WhiteNoise.
+
+        Collecting into the real STATIC_ROOT would leave staticfiles/ in the
+        working tree, and could serve stale files from an earlier run.
+        """
         super().setUpClass()
+        static_root = cls.enterClassContext(tempfile.TemporaryDirectory())
+        cls.enterClassContext(override_settings(STATIC_ROOT=static_root))
         call_command("collectstatic", interactive=False, verbosity=0)
 
     def test_vite_assets_are_cached_forever(self) -> None:

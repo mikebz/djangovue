@@ -83,7 +83,7 @@ Vite builds `frontend/js/main.js` into `frontend/dist/` with a manifest, and
   must render against the manifest.
 
 Vite writes its content-hashed output under `assets/`, and settings tells
-WhiteNoise that everything under `static/assets/` is immutable, so browsers
+WhiteNoise that everything under `/static/assets/` is immutable, so browsers
 cache it for good. Moving Vite's output elsewhere means changing that pattern
 too, and nothing unhashed may be put under `assets/`.
 
