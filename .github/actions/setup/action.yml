@@ -9,7 +9,7 @@ inputs:
     # Same as the Dockerfile's python base image, so CI tests what ships.
     # Change both together.
     description: Python version uv should install and pin.
-    default: "3.14"
+    default: "3.15"
   node-version:
     description: Node.js version to install. Ignored unless `node` is "true".
     default: "22"
