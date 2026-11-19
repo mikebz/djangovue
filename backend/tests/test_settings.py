@@ -202,7 +202,7 @@ class SettingsHelpersTest(SimpleTestCase):
                 with self.assertRaisesMessage(
                     ImproperlyConfigured, "SECURE_SSL_REDIRECT"
                 ):
-                    utils.get_env_bool("SECURE_SSL_REDIRECT", environ=environ)
+                    env.get_env_bool("SECURE_SSL_REDIRECT", environ=environ)
 
     def test_get_env_bool_blank_uses_default(self) -> None:
         """Intent: an empty assignment such as `DEBUG=` means "not set".
@@ -214,7 +214,7 @@ class SettingsHelpersTest(SimpleTestCase):
             The default is returned, matching how get_env_str treats blanks.
         """
         environ = {"DEBUG": "  "}
-        self.assertTrue(utils.get_env_bool("DEBUG", default=True, environ=environ))
+        self.assertTrue(env.get_env_bool("DEBUG", default=True, environ=environ))
 
     def test_get_env_list_splits_values(self) -> None:
         """Split comma-separated list values and trim whitespace."""
