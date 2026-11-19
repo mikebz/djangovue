@@ -20,20 +20,25 @@ import djangovue
 PACKAGES: tuple[ModuleType, ...] = (backend, djangovue)
 # Migrations are generated, and the tests package is what is running this.
 SKIPPED_SUBPACKAGES: tuple[str, ...] = ("migrations", "tests")
+# Importing these builds the whole WSGI/ASGI handler and middleware stack as a
+# side effect, and neither carries doctests.
+SKIPPED_MODULES: tuple[str, ...] = ("djangovue.asgi", "djangovue.wsgi")
 
 
 def _project_modules() -> list[ModuleType]:
     """Import and return every module in the project packages.
 
     Returns:
-        The package modules themselves and every submodule, except those in
-        the skipped subpackages.
+        The package modules themselves and every submodule, except the
+        skipped modules and those in the skipped subpackages.
 
     """
     modules: list[ModuleType] = list(PACKAGES)
     for package in PACKAGES:
         for info in pkgutil.walk_packages(package.__path__, f"{package.__name__}."):
-            if any(part in SKIPPED_SUBPACKAGES for part in info.name.split(".")):
+            if info.name in SKIPPED_MODULES or any(
+                part in SKIPPED_SUBPACKAGES for part in info.name.split(".")
+            ):
                 continue
             modules.append(importlib.import_module(info.name))
     return modules
