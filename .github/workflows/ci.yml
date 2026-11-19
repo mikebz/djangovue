@@ -87,3 +87,8 @@ jobs:
 
     - name: Build image
       run: make docker-build
+
+    # Runs the image as deployed (gunicorn, DEBUG off, WhiteNoise), which the
+    # runserver-based e2e checks in the test job never exercise.
+    - name: Smoke test image
+      run: make docker-smoke

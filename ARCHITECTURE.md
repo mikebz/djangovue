@@ -96,3 +96,8 @@ settings is evaluated at import time.
 
 `make e2e` adds two checks that the unit tests cannot cover: a template render
 against the built manifest, and a server boot smoke test.
+
+Both run under `runserver`. `make docker-smoke` covers the deployed path: it
+starts the built image (gunicorn, `DEBUG` off, WhiteNoise) and checks
+`/healthz`, the page, and every static asset the page links. CI runs it in the
+Docker job.
