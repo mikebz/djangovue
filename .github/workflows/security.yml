@@ -32,7 +32,8 @@ jobs:
       uses: astral-sh/setup-uv@v10.3.3
       with:
         enable-cache: true
-        python-version: "3.13"
+        # Same as the Dockerfile's python base image.
+        python-version: "3.14"
 
     - name: Setup Node.js
       uses: actions/setup-node@v7
