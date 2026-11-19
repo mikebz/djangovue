@@ -67,16 +67,19 @@ class IndexViewTest(TestCase):
         self.assertContains(response, "Vue.js App")
 
     def test_index_view_contains_javascript_bundle(self) -> None:
-        """Intent: the root URL includes JavaScript bundle references.
+        """Intent: the root URL loads the built JavaScript entry module.
 
         Steps:
             1. GET "/".
 
         Verification:
-            The response includes JavaScript bundle references.
+            The response has a module <script> whose src is a .js file. A bare
+            ".js" substring is not enough: the "Vue.js App" title contains one.
         """
         response = self.client.get("/")
-        self.assertContains(response, ".js")
+        self.assertRegex(
+            response.content.decode(), r'<script type="module"[^>]*\ssrc="[^"]+\.js"'
+        )
 
     def test_index_view_contains_css_bundle(self) -> None:
         """Intent: the root URL includes CSS bundle references.
@@ -89,6 +92,19 @@ class IndexViewTest(TestCase):
         """
         response = self.client.get("/")
         self.assertContains(response, ".css")
+
+    def test_index_view_links_favicon(self) -> None:
+        """Intent: browsers find the favicon, which lives under STATIC_URL.
+
+        Steps:
+            1. GET "/".
+
+        Verification:
+            The page links the favicon at its static URL. Without the link,
+            browsers request /favicon.ico, which is a 404.
+        """
+        response = self.client.get("/")
+        self.assertContains(response, '<link rel="icon" href="/static/favicon.ico">')
 
 
 class URLConfigTest(TestCase):

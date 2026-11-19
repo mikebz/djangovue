@@ -25,7 +25,6 @@ manage = "djangovue.cli:main"
 [project.optional-dependencies]
 dev = [
     "ruff>=0.17.4",
-    "black>=26.10.1",
     "mypy>=2.4.1",
     # Django ships no inline annotations; these stubs are what make the
     # `disallow_untyped_defs` type check meaningful across Django call sites.
@@ -51,30 +50,12 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "E501", # line too long, handled by black
+    "E501", # line too long, handled by ruff format
     "B008", # do not perform function calls in argument defaults
 ]
 
 [tool.ruff.lint.isort]
 known-first-party = ["djangovue", "backend"]
-
-[tool.black]
-line-length = 88
-target-version = ['py312']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
 
 [tool.mypy]
 python_version = "3.12"

@@ -173,11 +173,48 @@ class SettingsHelpersTest(SimpleTestCase):
         self.assertTrue(env.get_env_bool("DEBUG", environ=environ))
 
     def test_get_env_bool_parses_falsy_values(self) -> None:
-        """Parse strings not in the truthy set to False."""
-        for value in ["0", "false", "f", "no", "n", "off", "anything_else"]:
+        """Intent: the documented false spellings all read as False.
+
+        Steps:
+            1. Read DEBUG set to each accepted false spelling, in mixed case.
+
+        Verification:
+            Every one returns False.
+        """
+        for value in ["0", "false", "f", "no", "n", "off", "OFF", "False"]:
             with self.subTest(value=value):
                 environ = {"DEBUG": value}
                 self.assertFalse(env.get_env_bool("DEBUG", environ=environ))
+
+    def test_get_env_bool_rejects_unknown_values(self) -> None:
+        """Intent: a typo in a boolean setting stops startup, not reads False.
+
+        Steps:
+            1. Read SECURE_SSL_REDIRECT set to "ture" and to "enabled".
+
+        Verification:
+            Each raises ImproperlyConfigured naming the variable, instead of
+            quietly switching the redirect off.
+        """
+        for value in ["ture", "enabled"]:
+            with self.subTest(value=value):
+                environ = {"SECURE_SSL_REDIRECT": value}
+                with self.assertRaisesMessage(
+                    ImproperlyConfigured, "SECURE_SSL_REDIRECT"
+                ):
+                    utils.get_env_bool("SECURE_SSL_REDIRECT", environ=environ)
+
+    def test_get_env_bool_blank_uses_default(self) -> None:
+        """Intent: an empty assignment such as `DEBUG=` means "not set".
+
+        Steps:
+            1. Read DEBUG set to whitespace with a default of True.
+
+        Verification:
+            The default is returned, matching how get_env_str treats blanks.
+        """
+        environ = {"DEBUG": "  "}
+        self.assertTrue(utils.get_env_bool("DEBUG", default=True, environ=environ))
 
     def test_get_env_list_splits_values(self) -> None:
         """Split comma-separated list values and trim whitespace."""

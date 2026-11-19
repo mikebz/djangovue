@@ -25,7 +25,6 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build outputs
-frontend/bundles/
 frontend/dist/
 build/
 

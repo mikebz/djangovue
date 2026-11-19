@@ -87,7 +87,10 @@ Vite builds `frontend/js/main.js` into `frontend/dist/` with a manifest, and
 
 `publicDir` is disabled in the Vite config: static assets are served through
 Django's staticfiles rather than copied by Vite, so there is one static
-pipeline instead of two.
+pipeline instead of two. Staticfiles sees only `frontend/dist/` and the app
+`static/` directories, never the Vue source: an image the Vue code uses is
+imported so Vite hashes it into the build, and a file a Django template links
+to directly goes in `backend/static/`.
 
 ## Tests
 
