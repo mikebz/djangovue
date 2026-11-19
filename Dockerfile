@@ -1,4 +1,10 @@
 # Multi-stage build for Django + Vue.js application
+
+# uv's official image holds just the uv and uvx binaries. It is declared as a
+# stage so it is pinned by version and digest like the base images below.
+# https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
+FROM ghcr.io/astral-sh/uv:0.11.32@sha256:df4cae8f3a96d175e2e5f992e597550000edbe78fdc2594d5cd8de1a217f504c AS uv
+
 FROM cgr.dev/chainguard/node:latest-dev@sha256:81d77836dacab0c421ab4fbbf1cc2ffe56f9bc64793c1b077bbc1a30d61e1c05 AS frontend-builder
 
 USER root
@@ -20,7 +26,7 @@ COPY vite.config.js ./
 RUN npm run build
 
 # Python application stage
-FROM python:3.14-slim
+FROM python:3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
 
 # PATH puts the project virtualenv first, so `python` and `gunicorn` below are
 # the installed ones and nothing has to resolve dependencies at container start.
@@ -34,8 +40,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install UV
-RUN pip install --no-cache-dir uv
+COPY --from=uv /uv /uvx /bin/
 
 # Set work directory
 WORKDIR /app
