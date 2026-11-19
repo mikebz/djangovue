@@ -93,6 +93,19 @@ class IndexViewTest(TestCase):
         response = self.client.get("/")
         self.assertContains(response, ".css")
 
+    def test_index_view_links_favicon(self) -> None:
+        """Intent: browsers find the favicon, which lives under STATIC_URL.
+
+        Steps:
+            1. GET "/".
+
+        Verification:
+            The page links the favicon at its static URL. Without the link,
+            browsers request /favicon.ico, which is a 404.
+        """
+        response = self.client.get("/")
+        self.assertContains(response, '<link rel="icon" href="/static/favicon.ico">')
+
 
 class URLConfigTest(TestCase):
     """Test URL configuration and routing.
