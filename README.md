@@ -159,6 +159,10 @@ without touching the file — and a deployment that passes every variable in
 needs no `.env` at all. `.env` is excluded from the Docker image for the same
 reason; `make docker-run` passes it in with `--env-file`.
 
+Boolean variables accept `1/0`, `true/false`, `t/f`, `yes/no`, `y/n` and
+`on/off`, in any case. An empty value means unset. Anything else stops startup
+with `ImproperlyConfigured`, so a typo cannot silently turn a setting off.
+
 Required:
 - `SECRET_KEY`: Django secret key.
 - `ALLOWED_HOSTS`: Comma-separated hostnames allowed when `DEBUG=0`. E.g. `.run.app` for Cloud Run.
