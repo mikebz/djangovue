@@ -7,8 +7,6 @@ WhiteNoise serving static files) and checks the health endpoint, the page,
 and every script and stylesheet the page links.
 
 Pass `--url` to check an already-running server instead of starting the image.
-
-Author: Mike Borozdin (mikebz@)
 """
 
 import argparse

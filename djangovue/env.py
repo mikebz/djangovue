@@ -3,8 +3,6 @@
 Loads .env without overriding the real environment, and reads variables as
 typed values. Each reader takes an optional `environ` mapping so tests can
 exercise it without touching `os.environ`.
-
-Author: Mike Borozdin (mikebz@)
 """
 
 import os

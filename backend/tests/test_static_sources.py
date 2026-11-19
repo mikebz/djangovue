@@ -1,7 +1,4 @@
-"""Test suite for which files the project publishes as static files.
-
-Author: Mike Borozdin (mikebz@)
-"""
+"""Test suite for which files the project publishes as static files."""
 
 import json
 

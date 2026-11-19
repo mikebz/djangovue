@@ -4,8 +4,6 @@ Docstrings across the project carry examples. Django's test runner does not
 collect doctests on its own, so without this module a wrong example would pass
 `make test` unnoticed. Modules are discovered by walking the project packages,
 so a new or renamed module needs no change here.
-
-Author: Mike Borozdin (mikebz@)
 """
 
 import doctest

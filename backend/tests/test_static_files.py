@@ -1,7 +1,4 @@
-"""Test suite for how built static files are served in production.
-
-Author: Mike Borozdin (mikebz@)
-"""
+"""Test suite for how built static files are served in production."""
 
 import json
 import tempfile

@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that the index template renders expected frontend integration markers.
-
-Author: Mike Borozdin (mikebz@)
-"""
+"""Validate that the index template renders expected frontend integration markers."""
 
 import os
 import sys

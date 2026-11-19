@@ -1,7 +1,4 @@
-"""URL patterns for backend views.
-
-Author: Mike Borozdin (mikebz@)
-"""
+"""URL patterns for backend views."""
 
 from django.urls import URLPattern, path
 

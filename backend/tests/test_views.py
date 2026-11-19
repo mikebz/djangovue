@@ -1,7 +1,4 @@
-"""Test suite for backend views and routing.
-
-Author: Mike Borozdin (mikebz@)
-"""
+"""Test suite for backend views and routing."""
 
 import tempfile
 

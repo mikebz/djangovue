@@ -5,8 +5,6 @@ Starts Vite on a spare port, renders the index template with
 `DJANGO_VITE_DEV_MODE=1`, and fetches every `<script src>` the page names.
 A 404 here means the URL django-vite builds and the path Vite serves have
 drifted apart, which leaves the page blank in development.
-
-Author: Mike Borozdin (mikebz@)
 """
 
 import os

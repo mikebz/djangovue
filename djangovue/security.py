@@ -1,8 +1,6 @@
 """Security policy helpers for the settings module.
 
 Builds the Content Security Policy and validates the HSTS preload settings.
-
-Author: Mike Borozdin (mikebz@)
 """
 
 from django.core.exceptions import ImproperlyConfigured
