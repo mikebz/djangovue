@@ -3,7 +3,7 @@
 # uv's official image holds just the uv and uvx binaries. It is declared as a
 # stage so it is pinned by version and digest like the base images below.
 # https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
-FROM ghcr.io/astral-sh/uv:0.11.32@sha256:df4cae8f3a96d175e2e5f992e597550000edbe78fdc2594d5cd8de1a217f504c AS uv
+FROM ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d AS uv
 
 FROM cgr.dev/chainguard/node:latest-dev@sha256:c50cc3b01363d48e078a253ae4d5cb7318bacc03d61506b77f2dd98f6543f8fe AS frontend-builder
 
