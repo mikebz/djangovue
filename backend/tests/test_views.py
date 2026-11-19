@@ -159,7 +159,14 @@ class HealthEndpointTest(SimpleTestCase):
     """Test health endpoint behavior used by container checks."""
 
     def test_healthz_returns_ok_json(self) -> None:
-        """Return a healthy JSON payload on the health endpoint."""
+        """Intent: container probes see the app as healthy when it is up.
+
+        Steps:
+            1. GET "/healthz".
+
+        Verification:
+            The status is 200 and the JSON body is {"status": "ok"}.
+        """
         response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
