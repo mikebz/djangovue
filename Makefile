@@ -84,17 +84,15 @@ e2e: ensure-uv .env frontend-build ## Run end-to-end checks (template render + s
 	uv run python scripts/e2e_template_check.py
 	./scripts/e2e_server_smoke.sh
 
-lint: ## Run code linter (ruff)
+lint: ## Run linter and format check (ruff)
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run black --check .
 
 lint-fix: ## Run linter with auto-fix
 	uv run ruff check --fix .
 
-format: ## Format code with black
+format: ## Format code (ruff)
 	uv run ruff format .
-	uv run black .
 
 typecheck: ## Run static type checking with mypy
 	uv run mypy

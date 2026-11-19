@@ -115,7 +115,7 @@ make run            # Build frontend and start Django on one port
 make migrate        # Run migrations
 make test           # Run tests
 make lint           # Run code linter (ruff)
-make format         # Format code (black)
+make format         # Format code (ruff)
 make check          # Run Django system checks
 make verify         # Run lint, checks, tests, and e2e
 ```
@@ -211,7 +211,7 @@ Inline scripts and styles of your own should carry the per-request nonce, which
 This project includes comprehensive CI/CD pipelines:
 
 #### **Continuous Integration** (`ci.yml`)
-- **Python Linting**: Ruff linting and Black formatting
+- **Python Linting**: Ruff linting and formatting
 - **Frontend Linting**: Build validation and asset checking
 - **Python Tests**: Django test suite
 - **Integration Tests**: Full application testing
@@ -263,7 +263,7 @@ make docker-build
 - **Django + Vue remains a strong split**: backend-rendered pages and APIs on Django, interactive UI on Vue, without overengineering routing or deployment.
 - **Vite replaced legacy bundler complexity**: builds are fast and predictable, and local iteration is much smoother than older webpack-era setups.
 - **Strong defaults with room to grow**: start with SQLite and one service, then move to Postgres, workers, and CDN/static hosting patterns when needed.
-- **Tooling stays current**: Python 3.12+, Django 6.0, Vue 3.5, Vite 8, Ruff, Black, mypy (strict, with `django-stubs`), Docker, and CI automation are already integrated.
+- **Tooling stays current**: Python 3.12+, Django 6.0, Vue 3.5, Vite 8, Ruff, mypy (strict, with `django-stubs`), Docker, and CI automation are already integrated.
 
 ## 📝 Migration Notes
 
