@@ -72,9 +72,10 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Health check. Require HTTP 200 explicitly: `curl -f` exits 0 on 3xx
+# redirects, which would mask an HTTPS redirect on /healthz.
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/healthz || exit 1
+    CMD test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/healthz)" = "200"
 
 # Run application
 CMD ["gunicorn", "djangovue.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
