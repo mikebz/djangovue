@@ -214,7 +214,7 @@ Inline scripts and styles of your own should carry the per-request nonce, which
 
 ### GitHub Actions Workflows
 
-The three workflows below run on pushes and pull requests to `master`.
+The CI, Security, and CodeQL workflows run on pushes and pull requests to `master`; Claude Code Review runs on pull requests.
 
 #### **Continuous Integration** (`ci.yml`)
 - **Lint and Type Check**: Ruff and mypy (`make lint typecheck`)
@@ -228,6 +228,12 @@ The three workflows below run on pushes and pull requests to `master`.
 
 #### **CodeQL** (`codeql-analysis.yml`)
 - Static analysis of the Python and JavaScript code, also weekly.
+
+#### **Claude Code Review** (`claude-review.yml`)
+- Runs automated pull request reviews on non-draft pull requests from branches
+  in this repository (skipping forks and bot PRs) using
+  `anthropics/claude-code-action` pointed at Meta's `muse-spark-1.3-contributor`
+  model via the `MUSE_API_KEY` repository secret.
 
 ### Dependency updates (`.github/dependabot.yml`)
 
