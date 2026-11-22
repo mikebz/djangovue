@@ -82,7 +82,7 @@ test: ## Run Django tests
 e2e: ensure-uv .env frontend-build ## Run end-to-end checks (template render, server boot, Vite dev mode)
 	uv run manage migrate
 	uv run python scripts/e2e_template_check.py
-	./scripts/e2e_server_smoke.sh
+	uv run python scripts/e2e_server_smoke.py
 	uv run python scripts/e2e_vite_dev_check.py
 
 lint: ## Run linter and format check (ruff)
