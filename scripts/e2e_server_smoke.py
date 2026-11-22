@@ -309,6 +309,10 @@ def stop_process_group(
             return
         except subprocess.TimeoutExpired:
             continue
+    print(
+        f"Warning: server process {process.pid} did not exit after SIGKILL",
+        file=sys.stderr,
+    )
 
 
 def print_server_log(log: IO[bytes]) -> None:

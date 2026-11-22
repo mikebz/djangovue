@@ -8,7 +8,7 @@ import subprocess
 import urllib.error
 import urllib.request
 from collections.abc import Mapping
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from http.client import HTTPMessage
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -203,6 +203,25 @@ class PortInUseDetectionTest(SimpleTestCase):
 
 class FetchPageTest(SimpleTestCase):
     """Test HTTP fetching and redirect suppression."""
+
+    def test_fetch_page_returns_status_and_body(self) -> None:
+        """Intent: successful HTTP responses return their status and UTF-8 body.
+
+        Steps:
+            1. Build a mock HTTP response context manager with status 200.
+            2. Patch the opener to return it and call fetch_page.
+
+        Verification:
+            fetch_page returns (200, '<div id="app"></div>').
+        """
+        response = MagicMock()
+        response.status = 200
+        response.read.return_value = b'<div id="app"></div>'
+        response.__enter__.return_value = response
+        response.__exit__.return_value = None
+        with patch.object(e2e_server_smoke._OPENER, "open", return_value=response):
+            status, body = e2e_server_smoke.fetch_page("http://127.0.0.1:8098/")
+        self.assertEqual((status, body), (200, '<div id="app"></div>'))
 
     def test_fetch_page_returns_http_error_status(self) -> None:
         """Intent: HTTP error responses return their status and close the error.
@@ -404,6 +423,37 @@ class WaitForServerTest(SimpleTestCase):
         self.assertEqual(mock_fetch.call_count, 1)
         self.assertIn(e2e_server_smoke.EXPECTED_MARKER, error or "")
 
+    def test_returns_timeout_error_after_deadline(self) -> None:
+        """Intent: persistent connection failures report a timeout once expired.
+
+        Steps:
+            1. Patch fetch_page to raise URLError.
+            2. Patch time.monotonic so the deadline expires after one attempt.
+            3. Call wait_for_server with a live mock process.
+
+        Verification:
+            wait_for_server returns a timeout message naming the timeout.
+        """
+        process = MagicMock(spec=subprocess.Popen)
+        process.poll.return_value = None
+        with (
+            patch(
+                "scripts.e2e_server_smoke.fetch_page",
+                side_effect=urllib.error.URLError("connection refused"),
+            ),
+            patch(
+                "scripts.e2e_server_smoke.time.monotonic",
+                side_effect=[0.0, 0.1, 2.0],
+            ),
+        ):
+            error = e2e_server_smoke.wait_for_server(
+                "http://127.0.0.1:8098/",
+                process,
+                timeout=1.0,
+                poll_interval=0.0,
+            )
+        self.assertEqual(error, "timed out after 1s")
+
 
 class StopProcessGroupTest(SimpleTestCase):
     """Test process group teardown and SIGKILL escalation."""
@@ -488,6 +538,32 @@ class StopProcessGroupTest(SimpleTestCase):
         ):
             e2e_server_smoke.stop_process_group(process, timeout=1.0)
         process.wait.assert_called_once_with(timeout=1.0)
+
+    def test_warns_when_process_survives_sigkill(self) -> None:
+        """Intent: an unkillable process logs a diagnostic warning on stderr.
+
+        Steps:
+            1. Configure process.wait to raise TimeoutExpired on both signals.
+            2. Patch os.killpg and capture stderr during stop_process_group.
+
+        Verification:
+            stderr includes a warning naming the PID and SIGKILL.
+        """
+        process = MagicMock(spec=subprocess.Popen)
+        process.pid = 4321
+        process.poll.return_value = None
+        process.wait.side_effect = subprocess.TimeoutExpired(
+            cmd="runserver",
+            timeout=1.0,
+        )
+        stderr = io.StringIO()
+        with (
+            patch("scripts.e2e_server_smoke.os.killpg"),
+            redirect_stderr(stderr),
+        ):
+            e2e_server_smoke.stop_process_group(process, timeout=1.0)
+        self.assertIn("4321", stderr.getvalue())
+        self.assertIn("SIGKILL", stderr.getvalue())
 
 
 class MainFlowTest(SimpleTestCase):
