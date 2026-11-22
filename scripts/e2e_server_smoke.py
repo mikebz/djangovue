@@ -72,11 +72,14 @@ _OPENER: urllib.request.OpenerDirector = urllib.request.build_opener(
 )
 
 
-def format_url_host(host: str) -> str:
+def format_addrport_host(host: str) -> str:
     """Return a host formatted for URL authorities and Django runserver addrport.
 
     Bare IPv6 literals must be bracketed before appending `:port`, both for
-    valid HTTP URLs and for Django's `runserver` address parser.
+    valid HTTP URLs and for Django's `runserver` address parser. Intentionally
+    distinct from `djangovue.security.format_url_host`: this helper stays
+    stdlib-only and strips stray brackets from non-IPv6 hosts so `runserver`
+    addrport parsing never fails.
 
     Args:
         host: A hostname, IPv4 address, or IPv6 literal (bare or bracketed).
@@ -103,7 +106,7 @@ def connect_host_for(host: str) -> str:
 
     Returns:
         Unbracketed host suitable for `socket.create_connection` or
-        `format_url_host`.
+        `format_addrport_host`.
 
     """
     connect_host = host.strip("[]")
@@ -128,7 +131,7 @@ def build_server_url(host: str, port: int) -> str:
         The root URL string ending with `/`.
 
     """
-    return f"http://{format_url_host(connect_host_for(host))}:{port}/"
+    return f"http://{format_addrport_host(connect_host_for(host))}:{port}/"
 
 
 def parse_host(value: str) -> str:
@@ -361,11 +364,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     """
     args = parse_args(argv)
-    url_host = format_url_host(args.host)
+    addrport_host = format_addrport_host(args.host)
     url = build_server_url(args.host, args.port)
 
     if is_port_in_use(args.host, args.port):
-        print(f"Server smoke test failed: {url_host}:{args.port} is already in use")
+        print(
+            f"Server smoke test failed: {addrport_host}:{args.port} is already in use"
+        )
         return 1
 
     # Server output goes to an unnamed temporary file rather than a pipe: an
@@ -377,7 +382,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 str(BASE_DIR / "manage.py"),
                 "runserver",
                 "--noreload",
-                f"{url_host}:{args.port}",
+                f"{addrport_host}:{args.port}",
             ],
             cwd=BASE_DIR,
             env={**os.environ, "PYTHONUNBUFFERED": "1"},

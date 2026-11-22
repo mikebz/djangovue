@@ -30,8 +30,12 @@ class UrlHostFormattingTest(SimpleTestCase):
         Verification:
             Both values are returned unchanged.
         """
-        self.assertEqual(e2e_server_smoke.format_url_host("127.0.0.1"), "127.0.0.1")
-        self.assertEqual(e2e_server_smoke.format_url_host("localhost"), "localhost")
+        self.assertEqual(
+            e2e_server_smoke.format_addrport_host("127.0.0.1"), "127.0.0.1"
+        )
+        self.assertEqual(
+            e2e_server_smoke.format_addrport_host("localhost"), "localhost"
+        )
 
     def test_bare_ipv6_host_is_bracketed(self) -> None:
         """Intent: bare IPv6 literals are bracketed for URLs and runserver.
@@ -42,7 +46,7 @@ class UrlHostFormattingTest(SimpleTestCase):
         Verification:
             The result is "[::1]".
         """
-        self.assertEqual(e2e_server_smoke.format_url_host("::1"), "[::1]")
+        self.assertEqual(e2e_server_smoke.format_addrport_host("::1"), "[::1]")
 
     def test_bracketed_ipv6_is_not_double_wrapped(self) -> None:
         """Intent: an already-bracketed IPv6 literal is not wrapped twice.
@@ -53,7 +57,7 @@ class UrlHostFormattingTest(SimpleTestCase):
         Verification:
             The result remains "[::1]".
         """
-        self.assertEqual(e2e_server_smoke.format_url_host("[::1]"), "[::1]")
+        self.assertEqual(e2e_server_smoke.format_addrport_host("[::1]"), "[::1]")
 
     def test_build_server_url_formats_ipv6_host(self) -> None:
         """Intent: server URLs built from bare IPv6 hosts are valid HTTP URLs.
