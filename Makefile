@@ -138,6 +138,8 @@ docker-smoke: docker-build ## Run the built image and check it serves the app
 # The image carries no .env (.dockerignore keeps it out), so configuration is
 # passed in. DJANGO_VITE_DEV_MODE is forced off because the image serves the
 # assets it built - the -e flag beating the file is the precedence rule at work.
+# /app is read-only inside the container and no database volume is mounted here,
+# so DB writes need DATABASE_URL in .env or a /data volume (see README.md).
 docker-run: .env docker-build ## Build and run Docker container
 	docker run --rm --env-file .env -e DJANGO_VITE_DEV_MODE=0 -p 8000:8000 djangovue:latest
 
