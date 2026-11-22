@@ -10,11 +10,14 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+*.egg-info/
+.mypy_cache/
 .pytest_cache/
+.ruff_cache/
 
 # Django
 db.sqlite3
-db.sqlite3-journal
+db.sqlite3-*
 media/
 staticfiles/
 
@@ -51,6 +54,18 @@ Thumbs.db
 # Docker
 Dockerfile
 .dockerignore
+docker-compose.yml
+
+# Tests, tooling, and documentation
+# README.md is intentionally kept: pyproject.toml declares `readme = "README.md"`
+# for hatchling, which reads it during `uv sync --frozen --no-dev`.
+backend/tests/
+scripts/
+Makefile
+AGENTS.md
+ARCHITECTURE.md
+CONTRIBUTING.md
+docs/
 
 # CI/CD
 .github/
@@ -60,8 +75,7 @@ Dockerfile
 
 # Environment variables
 .env
-.env.local
-.env.*.local
+.env.*
 
 # Temporary files
 *.tmp

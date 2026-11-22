@@ -46,13 +46,21 @@ COPY --from=uv /uv /uvx /bin/
 WORKDIR /app
 
 # Third-party dependencies resolve from the lock file alone, so this layer is
-# reused across every source-only change. The project itself is installed by the
-# second sync, once its source is in place.
+# reused across every source-only change. Pass --no-cache so /root/.cache/uv is
+# never baked into image layers. The project itself is installed by the second
+# sync once its source is in place.
+# https://docs.astral.sh/uv/guides/integration/docker/
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --no-install-project --no-cache
 
-COPY . .
-RUN uv sync --frozen --no-dev
+# Copy only runtime Python files (plus README.md, which hatchling reads via
+# pyproject.toml's `readme` field during the second sync) so frontend sources
+# and dev files stay out of the runtime image and README edits do not bust the
+# third-party dependencies layer above.
+COPY manage.py README.md ./
+COPY djangovue/ ./djangovue/
+COPY backend/ ./backend/
+RUN uv sync --frozen --no-dev --no-cache
 
 # Copy built frontend from previous stage
 COPY --from=frontend-builder /app/frontend/dist/ ./frontend/dist/
@@ -64,9 +72,11 @@ ARG BUILD_DUMMY_KEY=dummy-secret-key-for-build
 RUN SECRET_KEY=${BUILD_DUMMY_KEY} DEBUG=1 ALLOWED_HOSTS=localhost \
     python manage.py collectstatic --noinput
 
-# Create non-root user
-RUN adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
+# Create non-root runtime user. Leave /app, .venv, staticfiles, and
+# frontend/dist owned by root (world-readable, non-writable by appuser) so
+# chown -R does not duplicate those trees into a new layer and the runtime
+# process cannot modify its own code or dependencies.
+RUN adduser --disabled-password --gecos '' appuser
 USER appuser
 
 # Expose port
