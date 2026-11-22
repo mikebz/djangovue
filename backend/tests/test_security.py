@@ -71,12 +71,14 @@ class CspPolicyTest(SimpleTestCase):
         """Intent: dev mode widens only script, style, and connect directives for Vite.
 
         Steps:
-            1. Build the policy with dev_mode enabled for host 1.2.3.4:5173.
+            1. Build the dev-mode policy for IPv4 host 1.2.3.4:5173.
+            2. Build the dev-mode policy for a bare IPv6 literal formatted with
+               format_url_host("::1") on port 3000.
 
         Verification:
             script-src, style-src, and connect-src admit the Vite HTTP/WS
-            origins and inline component styles, while framing and objects
-            remain denied.
+            origins (including bracketed IPv6 authorities) and inline component
+            styles, while framing and objects remain denied.
         """
         policy = security.build_csp_policy(
             dev_mode=True,
@@ -97,6 +99,14 @@ class CspPolicyTest(SimpleTestCase):
         )
         self.assertEqual(policy["frame-ancestors"], [CSP.NONE])
         self.assertEqual(policy["object-src"], [CSP.NONE])
+
+        ipv6_policy = security.build_csp_policy(
+            dev_mode=True,
+            dev_server_host=security.format_url_host("::1"),
+            dev_server_port=3000,
+        )
+        self.assertIn("http://[::1]:3000", ipv6_policy["script-src"])
+        self.assertIn("ws://[::1]:3000", ipv6_policy["connect-src"])
 
 
 class UrlHostFormattingTest(SimpleTestCase):
