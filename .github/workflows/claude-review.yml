@@ -1,0 +1,98 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    branches: [ master, main ]
+    types: [ opened, synchronize, ready_for_review, reopened ]
+
+# Read-only by default; only the review job requests PR/issue comment write access.
+permissions:
+  contents: read
+
+# A new push to a pull request supersedes any in-flight review run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Claude Review
+    # Skip fork PRs (secrets are unavailable and checkout code is untrusted),
+    # bot PRs such as Dependabot (rejected by claude-code-action's human-actor
+    # check), and drafts (reviewed once marked ready_for_review).
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.type != 'Bot' &&
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    # Route Claude Code to Meta's Anthropic-compatible Model API and pin every
+    # model slot to muse-spark-1.3-contributor so subagents and helper calls do
+    # not fall back to Anthropic model IDs.
+    # Note: the contributor tier allows Meta to use prompts and completions to
+    # improve its products, which is acceptable for this public repository.
+    env:
+      ANTHROPIC_BASE_URL: https://api.meta.ai
+      ANTHROPIC_MODEL: muse-spark-1.3-contributor
+      ANTHROPIC_DEFAULT_OPUS_MODEL: muse-spark-1.3-contributor
+      ANTHROPIC_DEFAULT_SONNET_MODEL: muse-spark-1.3-contributor
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: muse-spark-1.3-contributor
+      ANTHROPIC_SMALL_FAST_MODEL: muse-spark-1.3-contributor
+      CLAUDE_CODE_SUBAGENT_MODEL: muse-spark-1.3-contributor
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+      # Load the single inline-comment MCP tool upfront rather than deferring it
+      # behind ToolSearch, which is disabled/unallowed on custom ANTHROPIC_BASE_URL.
+      ENABLE_TOOL_SEARCH: "false"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Meta's /v1/messages endpoint accepts x-api-key, which also satisfies
+          # claude-code-action's required credential check:
+          # https://github.com/anthropics/claude-code-action/blob/v1/base-action/src/validate-env.ts
+          anthropic_api_key: ${{ secrets.MUSE_API_KEY }}
+          # Use the workflow's scoped GITHUB_TOKEN directly so reviews work on
+          # branches that modify this workflow and never call api.anthropic.com
+          # for OIDC app-token exchange:
+          # https://github.com/anthropics/claude-code-action/blob/v1/src/github/token.ts
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allow_fork_prs: "false"
+          # Disable the post-step inline-comment classifier: it hardcodes
+          # https://api.anthropic.com/v1/messages and would send MUSE_API_KEY
+          # to Anthropic instead of Meta:
+          # https://github.com/anthropics/claude-code-action/blob/v1/src/entrypoints/post-buffered-inline-comments.ts
+          classify_inline_comments: "false"
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review pull request #${{ github.event.pull_request.number }} in ${{ github.repository }}.
+
+            Start by inspecting the PR metadata and diff with `gh pr view` and `gh pr diff`,
+            and read `AGENTS.md` and `ARCHITECTURE.md` if relevant to the touched files.
+
+            Focus your review on:
+            1. **Correctness & Edge Cases**: bugs, logic errors, broken assumptions, or regressions.
+            2. **Security**: secrets handling, CSP/security headers, workflow permissions, and untrusted input.
+            3. **Repository Conventions**: adherence to `AGENTS.md` (strict typing, 50-char function names, env helpers, test outline docstrings, single static pipeline).
+            4. **Tests & Maintainability**: missing test coverage, unclear structure, or unnecessary complexity.
+
+            Use `mcp__github_inline_comment__create_inline_comment` for concrete line-level issues
+            and post one concise summary comment with `gh pr comment` covering your overall verdict.
+            Avoid nitpicks and do not approve or merge the PR.
+          claude_args: >-
+            --model muse-spark-1.3-contributor
+            --max-turns 30
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
