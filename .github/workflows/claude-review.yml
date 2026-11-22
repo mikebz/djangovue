@@ -5,75 +5,72 @@ on:
     branches: [ master, main ]
     types: [ opened, synchronize, ready_for_review, reopened ]
 
-# Read-only by default; only the review job requests PR/issue comment write access.
+# Inline comments and the summary review both need only pull-requests: write.
 permissions:
   contents: read
+  pull-requests: write
 
 # A new push to a pull request supersedes any in-flight review run.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   review:
     name: Claude Review
-    # Skip fork PRs (secrets are unavailable and checkout code is untrusted),
-    # bot PRs such as Dependabot (rejected by claude-code-action's human-actor
-    # check), and drafts (reviewed once marked ready_for_review).
+    # Skip drafts (reviewed once marked ready_for_review), fork PRs (secrets are
+    # unavailable and checkout code is untrusted), and bot PRs or bot pushes,
+    # which claude-code-action's human-actor check rejects.
     if: >-
+      !github.event.pull_request.draft &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.user.type != 'Bot' &&
-      !github.event.pull_request.draft
+      !endsWith(github.actor, '[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-
-    # Route Claude Code to Meta's Anthropic-compatible Model API and pin every
-    # model slot to muse-spark-1.3-contributor so subagents and helper calls do
-    # not fall back to Anthropic model IDs.
-    # Note: the contributor tier allows Meta to use prompts and completions to
-    # improve its products, which is acceptable for this public repository.
-    env:
-      ANTHROPIC_BASE_URL: https://api.meta.ai
-      ANTHROPIC_MODEL: muse-spark-1.3-contributor
-      ANTHROPIC_DEFAULT_OPUS_MODEL: muse-spark-1.3-contributor
-      ANTHROPIC_DEFAULT_SONNET_MODEL: muse-spark-1.3-contributor
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: muse-spark-1.3-contributor
-      ANTHROPIC_SMALL_FAST_MODEL: muse-spark-1.3-contributor
-      CLAUDE_CODE_SUBAGENT_MODEL: muse-spark-1.3-contributor
-      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
-      # Load the single inline-comment MCP tool upfront rather than deferring it
-      # behind ToolSearch, which is disabled/unallowed on custom ANTHROPIC_BASE_URL.
-      ENABLE_TOOL_SEARCH: "false"
-
     steps:
+      - name: Check Meta Muse API key
+        env:
+          MUSE_API_KEY: ${{ secrets.MUSE_API_KEY }}
+        run: |
+          if [ -z "$MUSE_API_KEY" ]; then
+            echo "::error::MUSE_API_KEY secret is not configured. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          fetch-depth: 1
+          persist-credentials: false
 
-      - name: Run Claude Code Review
+      - name: Review PR with Meta Muse Spark
+        id: review
         uses: anthropics/claude-code-action@v1
+        env:
+          # Meta's Anthropic-compatible Model API; the model is set by --model.
+          # The contributor tier lets Meta use prompts and completions to improve
+          # its products, which is acceptable for this public repository.
+          ANTHROPIC_BASE_URL: https://api.meta.ai
+          # With tool search on, the inline-comment MCP tool is deferred behind
+          # ToolSearch, which is unavailable on a custom base URL.
+          ENABLE_TOOL_SEARCH: "false"
         with:
           # Meta's /v1/messages endpoint accepts x-api-key, which also satisfies
-          # claude-code-action's required credential check:
-          # https://github.com/anthropics/claude-code-action/blob/v1/base-action/src/validate-env.ts
+          # claude-code-action's required credential check.
           anthropic_api_key: ${{ secrets.MUSE_API_KEY }}
-          # Use the workflow's scoped GITHUB_TOKEN directly so reviews work on
-          # branches that modify this workflow and never call api.anthropic.com
-          # for OIDC app-token exchange:
-          # https://github.com/anthropics/claude-code-action/blob/v1/src/github/token.ts
+          # Without it the action exchanges an OIDC token at api.anthropic.com.
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Defaults to "true".
           allow_fork_prs: "false"
-          # Disable the post-step inline-comment classifier: it hardcodes
-          # https://api.anthropic.com/v1/messages and would send MUSE_API_KEY
-          # to Anthropic instead of Meta:
+          # The classifier calls api.anthropic.com/v1/messages directly, which
+          # would send MUSE_API_KEY to Anthropic instead of Meta:
           # https://github.com/anthropics/claude-code-action/blob/v1/src/entrypoints/post-buffered-inline-comments.ts
           classify_inline_comments: "false"
+          claude_args: >-
+            --model muse-spark-1.3-contributor
+            --max-turns 30
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -89,10 +86,25 @@ jobs:
             3. **Repository Conventions**: adherence to `AGENTS.md` (strict typing, 50-char function names, env helpers, test outline docstrings, single static pipeline).
             4. **Tests & Maintainability**: missing test coverage, unclear structure, or unnecessary complexity.
 
-            Use `mcp__github_inline_comment__create_inline_comment` for concrete line-level issues
-            and post one concise summary comment with `gh pr comment` covering your overall verdict.
-            Avoid nitpicks and do not approve or merge the PR.
-          claude_args: >-
-            --model muse-spark-1.3-contributor
-            --max-turns 30
-            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
+            Use `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`) for
+            concrete line-level issues. Avoid nitpicks.
+
+            Your final response is posted by the workflow as the PR review summary. Output ONLY
+            the markdown summary, with no conversational filler: a brief overview of the change
+            and your overall verdict, then the key findings (or "No blocking issues found").
+
+      - name: Post review summary
+        if: steps.review.outputs.execution_file != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXECUTION_FILE: ${{ steps.review.outputs.execution_file }}
+        run: |
+          summary_file=$(mktemp)
+          trap 'rm -f "$summary_file"' EXIT
+          jq -r '[.[] | select(.type == "result" and .subtype == "success") | .result | select(type == "string") | select(test("\\S"))] | last // empty' "$EXECUTION_FILE" > "$summary_file"
+          if [ ! -s "$summary_file" ]; then
+            echo "::error::Review completed without producing a summary."
+            exit 1
+          fi
+          gh pr review "$PR_NUMBER" --comment --body-file "$summary_file"
