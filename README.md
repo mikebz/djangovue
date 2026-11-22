@@ -165,9 +165,14 @@ without touching the file — and a deployment that passes every variable in
 needs no `.env` at all. `.env` is excluded from the Docker image for the same
 reason; `make docker-run` passes it in with `--env-file`.
 
+An empty or blank value (`KEY=` or whitespace only) means unset and falls back
+to the default across all typed environment variables (required variables such
+as `SECRET_KEY`, and `ALLOWED_HOSTS` when `DEBUG=0`, still raise
+`ImproperlyConfigured`).
+
 Boolean variables accept `1/0`, `true/false`, `t/f`, `yes/no`, `y/n` and
-`on/off`, in any case. An empty value means unset. Anything else stops startup
-with `ImproperlyConfigured`, so a typo cannot silently turn a setting off.
+`on/off`, in any case. Anything else stops startup with `ImproperlyConfigured`,
+so a typo cannot silently turn a setting off.
 
 Required:
 - `SECRET_KEY`: Django secret key.

@@ -61,6 +61,50 @@ class SettingsModuleTest(SimpleTestCase):
                 name = project_settings.DATABASES["default"]["NAME"]
         self.assertEqual(name, str(project_settings.BASE_DIR / "db.sqlite3"))
 
+    def test_blank_allowed_hosts_uses_debug_defaults(self) -> None:
+        """Intent: a blank ALLOWED_HOSTS under DEBUG=1 uses the dev defaults.
+
+        Steps:
+            1. Reload settings with SECRET_KEY, DEBUG="1", and ALLOWED_HOSTS="".
+
+        Verification:
+            ALLOWED_HOSTS equals ["localhost", "127.0.0.1", "0.0.0.0"].
+        """
+        environ = {
+            "SECRET_KEY": "test-secret-key",
+            "DEBUG": "1",
+            "ALLOWED_HOSTS": "",
+        }
+        self.addCleanup(importlib.reload, project_settings)
+        with mock.patch.object(env, "load_env_file", return_value={}):
+            with mock.patch.dict(os.environ, environ, clear=True):
+                importlib.reload(project_settings)
+                hosts = project_settings.ALLOWED_HOSTS
+        self.assertEqual(hosts, ["localhost", "127.0.0.1", "0.0.0.0"])
+
+    def test_blank_allowed_hosts_raises_when_debug_off(self) -> None:
+        """Intent: a blank ALLOWED_HOSTS under DEBUG=0 stops startup.
+
+        Steps:
+            1. Reload settings with SECRET_KEY, DEBUG="0", and ALLOWED_HOSTS="".
+
+        Verification:
+            ImproperlyConfigured is raised naming ALLOWED_HOSTS.
+        """
+        environ = {
+            "SECRET_KEY": "test-secret-key",
+            "DEBUG": "0",
+            "ALLOWED_HOSTS": "",
+        }
+        self.addCleanup(importlib.reload, project_settings)
+        with mock.patch.object(env, "load_env_file", return_value={}):
+            with mock.patch.dict(os.environ, environ, clear=True):
+                with self.assertRaisesMessage(
+                    ImproperlyConfigured,
+                    "ALLOWED_HOSTS must be set when DEBUG is disabled",
+                ):
+                    importlib.reload(project_settings)
+
 
 class EnvFileLoadingTest(SimpleTestCase):
     """Test how a .env file is applied to the process environment."""
@@ -289,6 +333,45 @@ class SettingsHelpersTest(SimpleTestCase):
             ["a", "b"],
         )
 
+    def test_get_env_list_uses_default_when_blank(self) -> None:
+        """Intent: a blank list value falls back to a list copy of its default.
+
+        Steps:
+            1. Read ALLOWED_HOSTS set to "" and to "   " with a list default.
+
+        Verification:
+            Each returns a fresh list equal to the default.
+        """
+        default = ["localhost", "127.0.0.1"]
+        for value in ["", "   "]:
+            with self.subTest(value=value):
+                result = env.get_env_list(
+                    "ALLOWED_HOSTS",
+                    default=default,
+                    environ={"ALLOWED_HOSTS": value},
+                )
+                self.assertEqual(result, default)
+                self.assertIsNot(result, default)
+
+    def test_get_env_list_empty_when_blank_no_default(self) -> None:
+        """Intent: a blank list value with no default reads as an empty list.
+
+        Steps:
+            1. Read CSRF_TRUSTED_ORIGINS set to "" and to "   " with no default.
+
+        Verification:
+            Each returns an empty list.
+        """
+        for value in ["", "   "]:
+            with self.subTest(value=value):
+                self.assertEqual(
+                    env.get_env_list(
+                        "CSRF_TRUSTED_ORIGINS",
+                        environ={"CSRF_TRUSTED_ORIGINS": value},
+                    ),
+                    [],
+                )
+
     def test_get_env_str_uses_default_when_missing(self) -> None:
         """Intent: an unset string variable falls back to its default.
 
@@ -361,6 +444,41 @@ class SettingsHelpersTest(SimpleTestCase):
             env.get_env_int("DB_CONN_MAX_AGE", default=0, environ=environ),
             120,
         )
+
+    def test_get_env_int_strips_whitespace(self) -> None:
+        """Intent: stray whitespace around an integer value is ignored.
+
+        Steps:
+            1. Read DB_CONN_MAX_AGE set to " 120 ".
+
+        Verification:
+            The result is the integer 120.
+        """
+        environ = {"DB_CONN_MAX_AGE": " 120 "}
+        self.assertEqual(
+            env.get_env_int("DB_CONN_MAX_AGE", default=0, environ=environ),
+            120,
+        )
+
+    def test_get_env_int_falls_back_when_blank(self) -> None:
+        """Intent: an empty or whitespace integer value means "not set".
+
+        Steps:
+            1. Read DB_CONN_MAX_AGE set to "" and to "   " with default 60.
+
+        Verification:
+            Each returns the default, 60.
+        """
+        for value in ["", "   "]:
+            with self.subTest(value=value):
+                self.assertEqual(
+                    env.get_env_int(
+                        "DB_CONN_MAX_AGE",
+                        default=60,
+                        environ={"DB_CONN_MAX_AGE": value},
+                    ),
+                    60,
+                )
 
     def test_get_env_int_raises_for_invalid_value(self) -> None:
         """Intent: a non-numeric integer setting stops startup.
