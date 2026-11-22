@@ -248,3 +248,104 @@ SECURE_CSP: dict[str, list[str]] = build_csp_policy(
     dev_server_port=VITE_DEV_SERVER_PORT,
 )
 SECURE_CSP_REPORT_ONLY: dict[str, list[str]] = {}
+
+
+# Logging
+# https://docs.djangoproject.com/en/6.0/topics/logging/
+#
+# Django's DEFAULT_LOGGING attaches `require_debug_true` to its console handler
+# and routes production errors to `mail_admins`, which silently drops them when
+# ADMINS and email are unconfigured. Configure stderr StreamHandlers without
+# debug filters so request errors, security rejections, and application logs
+# always reach container logs.
+
+
+def parse_log_level(raw_level: str) -> str:
+    """Normalise and validate a log level name for `LOG_LEVEL`.
+
+    Args:
+        raw_level: Raw level string read from the environment (any case, may
+            include surrounding whitespace).
+
+    Returns:
+        The uppercased standard Python logging level name.
+
+    Raises:
+        ImproperlyConfigured: If `raw_level` is not one of the supported
+            logging level names.
+
+    Examples:
+        >>> parse_log_level("info")
+        'INFO'
+        >>> parse_log_level(" warning ")
+        'WARNING'
+
+    """
+    valid_levels = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+    level = raw_level.strip().upper()
+    if level not in valid_levels:
+        allowed = ", ".join(valid_levels)
+        raise ImproperlyConfigured(
+            f"LOG_LEVEL must be one of {allowed}, got {raw_level!r}"
+        )
+    return level
+
+
+LOG_LEVEL: str = parse_log_level(get_env_str("LOG_LEVEL", default="INFO"))
+
+LOGGING: dict[str, Any] = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "console": {
+            "format": "{asctime} {levelname} {name}: {message}",
+            "style": "{",
+        },
+        "django.server": {
+            "()": "django.utils.log.ServerFormatter",
+            "format": "[{server_time}] {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+        },
+        "django.server": {
+            "class": "logging.StreamHandler",
+            "formatter": "django.server",
+            "level": "INFO",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        # Explicitly preserved from DEFAULT_LOGGING because configuring its
+        # parent `django` logger causes dictConfig to clear child logger
+        # handlers; keeping it preserves `runserver` formatting without
+        # duplicating records to `django` or `root`.
+        "django.server": {
+            "handlers": ["django.server"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
