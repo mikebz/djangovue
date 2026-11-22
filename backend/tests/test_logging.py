@@ -8,7 +8,7 @@ from unittest import mock
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import Client, SimpleTestCase, override_settings
-from django.utils.log import ServerFormatter
+from django.utils.log import AdminEmailHandler, ServerFormatter
 from django.utils.log import configure_logging as django_configure_logging
 
 from backend.tests.helpers import reload_prod_settings
@@ -21,6 +21,17 @@ class _LoggingCaptureMixin(SimpleTestCase):
     def _restore_logging(self) -> None:
         """Restore the Django test runner's logging configuration."""
         django_configure_logging(settings.LOGGING_CONFIG, settings.LOGGING)
+
+    def _assert_no_admin_email_handler(self, *logger_names: str) -> None:
+        """Assert that none of the named loggers attach `AdminEmailHandler`.
+
+        Args:
+            *logger_names: Logger names to inspect (use `""` for root).
+
+        """
+        for logger_name in logger_names:
+            for handler in logging.getLogger(logger_name).handlers:
+                self.assertNotIsInstance(handler, AdminEmailHandler)
 
     def _capture_logging_stderr(self, logging_config: dict[str, Any]) -> io.StringIO:
         """Apply a logging config with stderr redirected to an in-memory buffer.
@@ -119,11 +130,12 @@ class ProductionLoggingConfigTest(_LoggingCaptureMixin):
             2. GET "/" with a disallowed Host header.
 
         Verification:
-            The response is 400 and stderr records the DisallowedHost error
-            from django.security.DisallowedHost once.
+            The response is 400, django.security has no AdminEmailHandler, and
+            stderr records the DisallowedHost error once.
         """
         reload_prod_settings(self)
         stream = self._capture_logging_stderr(project_settings.LOGGING)
+        self._assert_no_admin_email_handler("django.security")
 
         response = self.client.get("/", headers={"Host": "evil.example"})
 
@@ -143,11 +155,12 @@ class ProductionLoggingConfigTest(_LoggingCaptureMixin):
                with a client that returns 500 responses instead of re-raising.
 
         Verification:
-            The response is 500 and stderr contains the django.request error
-            and exception traceback once.
+            The response is 500, django.request has no AdminEmailHandler, and
+            stderr contains the django.request error and traceback once.
         """
         reload_prod_settings(self)
         stream = self._capture_logging_stderr(project_settings.LOGGING)
+        self._assert_no_admin_email_handler("django.request")
         client = Client(raise_request_exception=False)
 
         with mock.patch("backend.views.render", side_effect=RuntimeError("boom")):
@@ -170,10 +183,12 @@ class ProductionLoggingConfigTest(_LoggingCaptureMixin):
             2. Log an INFO message on an application logger ("backend.views").
 
         Verification:
-            The message, severity, and logger name appear once in stderr.
+            Neither root nor django attaches AdminEmailHandler, and the
+            message, severity, and logger name appear once in stderr.
         """
         reload_prod_settings(self)
         stream = self._capture_logging_stderr(project_settings.LOGGING)
+        self._assert_no_admin_email_handler("", "django")
 
         logging.getLogger("backend.views").info("application startup event")
 
