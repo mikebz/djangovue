@@ -178,6 +178,7 @@ Optional:
 - `DEBUG`: `1/true` for development mode, defaults to `0`.
 - `DATABASE_URL`: Database connection URL. Defaults to local SQLite.
 - `DB_CONN_MAX_AGE`: Database persistent connection age in seconds (default `60`).
+- `LOG_LEVEL`: Logging threshold for Django and application logs: `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` (case-insensitive, default `INFO`). Invalid values stop startup with `ImproperlyConfigured`.
 - `SECURE_SSL_REDIRECT`: Force HTTPS redirects (defaults to `0`, set to `1` in TLS-terminated production).
 - `USE_X_FORWARDED_PROTO`: Trust `X-Forwarded-Proto` from a controlled reverse proxy (default `0`).
 - `SECURE_HSTS_SECONDS`: HSTS max-age in seconds (default `0`, meaning off). Only turn this on once the site is fully served over HTTPS — browsers will refuse plain HTTP for the whole max-age.
