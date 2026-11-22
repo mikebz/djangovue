@@ -136,12 +136,12 @@ class PortParsingTest(SimpleTestCase):
         """Intent: blank or empty-bracket host values fail CLI validation.
 
         Steps:
-            1. Parse "", "   ", and "[]" with parse_host.
+            1. Parse "", "   ", "[]", and "[   ]" with parse_host.
 
         Verification:
             Each call raises argparse.ArgumentTypeError.
         """
-        for value in ("", "   ", "[]"):
+        for value in ("", "   ", "[]", "[   ]"):
             with self.assertRaises(argparse.ArgumentTypeError):
                 e2e_server_smoke.parse_host(value)
 

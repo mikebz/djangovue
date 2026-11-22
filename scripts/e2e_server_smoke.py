@@ -145,7 +145,7 @@ def parse_host(value: str) -> str:
 
     """
     host = value.strip()
-    if not host or not host.strip("[]"):
+    if not host or not host.strip("[]").strip():
         raise argparse.ArgumentTypeError("host must not be empty")
     return host
 
