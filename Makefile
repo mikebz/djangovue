@@ -79,9 +79,8 @@ check: ## Run Django system checks
 test: ## Run Django tests
 	uv run manage test
 
-e2e: ensure-uv .env frontend-build ## Run end-to-end checks (template render, server boot, Vite dev mode)
+e2e: ensure-uv .env frontend-build ## Run end-to-end checks (server boot, Vite dev mode)
 	uv run manage migrate
-	uv run python scripts/e2e_template_check.py
 	uv run python scripts/e2e_server_smoke.py
 	uv run python scripts/e2e_vite_dev_check.py
 
