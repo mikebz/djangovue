@@ -271,6 +271,26 @@ endpoint at `/healthz`. It ships without a `.env` file, so configuration is
 passed in at run time — `make docker-run` forwards your local one with
 `--env-file .env`, and any `-e` flag overrides a single key from it.
 
+The production container runs as non-root `appuser` with `/app` read-only, so
+application code and dependencies cannot be modified at run time. `make
+docker-run` launches the container without a database volume, which serves `/`
+and `/healthz` out of the box; because the default SQLite path
+(`/app/db.sqlite3`) is not writable inside the container, routes or commands
+that write to the database (such as `migrate`, `/admin/`, or sessions) require
+either an external `DATABASE_URL` (for example in `.env`) or a writable volume
+mounted at `/data` (pre-created and owned by `appuser` in the image):
+
+```bash
+# Initialize the SQLite database on the volume before serving
+docker run --rm --env-file .env \
+  -v djangovue-data:/data -e DATABASE_URL=sqlite:////data/db.sqlite3 \
+  djangovue:latest python manage.py migrate
+
+docker run --rm --env-file .env -e DJANGO_VITE_DEV_MODE=0 \
+  -v djangovue-data:/data -e DATABASE_URL=sqlite:////data/db.sqlite3 \
+  -p 8000:8000 djangovue:latest
+```
+
 The Compose stack is for development: it mounts the working tree, runs
 `runserver` so edits reload, reads the same `.env`, and points Django at the
 Vite dev server running in the `frontend` service.

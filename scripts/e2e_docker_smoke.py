@@ -184,6 +184,51 @@ def check_production_guards(base_url: str) -> list[str]:
     return problems
 
 
+def check_container_filesystem() -> list[str]:
+    """Verify the runtime container has read-only /app, no tests, and writable /data.
+
+    Returns:
+        A description of each filesystem invariant that failed; empty when valid.
+
+    """
+    problems: list[str] = []
+    app_ro = subprocess.run(
+        ["docker", "exec", CONTAINER_NAME, "test", "!", "-w", "/app"],
+        capture_output=True,
+        text=True,
+    )
+    if app_ro.returncode != 0:
+        problems.append("/app is writable by the runtime container user")
+
+    tests_absent = subprocess.run(
+        ["docker", "exec", CONTAINER_NAME, "test", "!", "-e", "/app/backend/tests"],
+        capture_output=True,
+        text=True,
+    )
+    if tests_absent.returncode != 0:
+        problems.append("/app/backend/tests leaked into the runtime image")
+
+    migrate = subprocess.run(
+        [
+            "docker",
+            "exec",
+            "--env",
+            "DATABASE_URL=sqlite:////data/db.sqlite3",
+            CONTAINER_NAME,
+            "python",
+            "manage.py",
+            "migrate",
+            "--noinput",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if migrate.returncode != 0:
+        detail = (migrate.stderr or migrate.stdout).strip()
+        problems.append(f"migrate to /data/db.sqlite3 failed: {detail}")
+    return problems
+
+
 def container_running() -> bool:
     """Report whether the smoke-test container is still running.
 
@@ -255,6 +300,7 @@ def main() -> int:
         problems = check_site(base_url, headers=site_headers)
         if not args.url:
             problems.extend(check_production_guards(base_url))
+            problems.extend(check_container_filesystem())
         if problems:
             print("Smoke test failed:")
             print("- " + "\n- ".join(problems))
