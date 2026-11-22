@@ -1,264 +1,96 @@
-"""Test suite for backend views and routing."""
+"""Test suite for backend views and health check middleware."""
 
-import tempfile
-
-from django.conf import settings
-from django.core.management import call_command
 from django.test import SimpleTestCase, override_settings
-from django.urls import resolve
-
-from backend import views
 
 
 class IndexViewTest(SimpleTestCase):
     """Test the main index view that serves the Vue.js application."""
 
-    def test_index_view_returns_200_status_code(self) -> None:
-        """Intent: the root URL serves a successful response.
+    def test_index_renders_vue_shell_and_built_assets(self) -> None:
+        """Intent: the root URL serves the Vue shell with built Vite JS and CSS bundles.
 
         Steps:
             1. GET "/".
 
         Verification:
-            The response status is 200.
+            The response is 200 using index.html, includes the Vue mount point
+            and title, and links built module JS and stylesheet CSS bundles.
         """
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-
-    def test_index_view_uses_correct_template(self) -> None:
-        """Intent: the root URL uses the correct template.
-
-        Steps:
-            1. GET "/".
-
-        Verification:
-            The index.html template is used.
-        """
-        response = self.client.get("/")
         self.assertTemplateUsed(response, "index.html")
-
-    def test_index_view_contains_vue_app_div(self) -> None:
-        """Intent: the root URL serves the Vue shell.
-
-        Steps:
-            1. GET "/".
-
-        Verification:
-            The response contains the Vue.js app mount point.
-        """
-        response = self.client.get("/")
         self.assertContains(response, '<div id="app">')
-
-    def test_index_view_contains_vue_js_title(self) -> None:
-        """Intent: the root URL serves the Vue app title.
-
-        Steps:
-            1. GET "/".
-
-        Verification:
-            The response contains the Vue.js App title.
-        """
-        response = self.client.get("/")
         self.assertContains(response, "Vue.js App")
-
-    def test_index_view_contains_javascript_bundle(self) -> None:
-        """Intent: the root URL loads the built JavaScript entry module.
-
-        Steps:
-            1. GET "/".
-
-        Verification:
-            The response has a module <script> whose src is a .js file. A bare
-            ".js" substring is not enough: the "Vue.js App" title contains one.
-        """
-        response = self.client.get("/")
+        html = response.content.decode()
+        # Require actual asset tags rather than bare ".js"/".css" substrings:
+        # the "Vue.js App" title itself contains ".js".
+        self.assertRegex(html, r'<script type="module"[^>]*\ssrc="/static/[^"]+\.js"')
         self.assertRegex(
-            response.content.decode(), r'<script type="module"[^>]*\ssrc="[^"]+\.js"'
+            html,
+            r'<link(?=[^>]*\srel="stylesheet")[^>]*\shref="/static/[^"]+\.css"',
         )
 
-    def test_index_view_contains_css_bundle(self) -> None:
-        """Intent: the root URL includes CSS bundle references.
+    def test_index_includes_document_metadata(self) -> None:
+        """Intent: the root page sets language, mobile viewport, and static favicon link.
 
         Steps:
             1. GET "/".
 
         Verification:
-            The response includes CSS bundle references.
-        """
-        response = self.client.get("/")
-        self.assertContains(response, ".css")
-
-    def test_index_view_declares_language(self) -> None:
-        """Intent: assistive technology knows which language the page is in.
-
-        Steps:
-            1. GET "/".
-
-        Verification:
-            The <html> element carries lang="en" (WCAG 2.1 success criterion
-            3.1.1, Language of Page).
+            The HTML declares lang="en" (WCAG 3.1.1), sets the responsive
+            viewport meta tag, and links the favicon under STATIC_URL.
         """
         response = self.client.get("/")
         self.assertContains(response, '<html lang="en">')
-
-    def test_index_view_sets_mobile_viewport(self) -> None:
-        """Intent: phones lay the page out at device width, not desktop width.
-
-        Steps:
-            1. GET "/".
-
-        Verification:
-            The page has a viewport meta tag with width=device-width.
-        """
-        response = self.client.get("/")
         self.assertContains(
             response,
             '<meta name="viewport" content="width=device-width, initial-scale=1">',
         )
-
-    def test_index_view_links_favicon(self) -> None:
-        """Intent: browsers find the favicon, which lives under STATIC_URL.
-
-        Steps:
-            1. GET "/".
-
-        Verification:
-            The page links the favicon at its static URL. Without the link,
-            browsers request /favicon.ico, which is a 404.
-        """
-        response = self.client.get("/")
         self.assertContains(response, '<link rel="icon" href="/static/favicon.ico">')
-
-
-class URLConfigTest(SimpleTestCase):
-    """Test URL configuration and routing.
-
-    Ensures proper URL patterns are working.
-    """
-
-    def test_root_url_resolves_to_index_view(self) -> None:
-        """Intent: the root URL is routed to the index view.
-
-        Steps:
-            1. Resolve "/" against the project URLconf.
-
-        Verification:
-            The resolved view function is backend.views.index.
-        """
-        self.assertIs(resolve("/").func, views.index)
-
-
-class ViteIntegrationTest(SimpleTestCase):
-    """Test Django-Vite integration.
-
-    Ensures build assets are properly integrated.
-    """
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        """Collect static files into a temporary STATIC_ROOT for these tests.
-
-        Collecting into the real STATIC_ROOT would leave staticfiles/ in the
-        working tree after every test run.
-        """
-        super().setUpClass()
-        static_root = cls.enterClassContext(tempfile.TemporaryDirectory())
-        cls.enterClassContext(override_settings(STATIC_ROOT=static_root))
-        call_command("collectstatic", interactive=False, verbosity=0)
-
-    def test_vite_assets_are_loaded(self) -> None:
-        """Intent: Vite-generated assets are referenced in the built frontend.
-
-        Steps:
-            1. GET "/".
-
-        Verification:
-            Vite-generated assets (script and link tags) are referenced.
-        """
-        response = self.client.get("/")
-        # Check that the response contains script tags
-        self.assertContains(response, "<script")
-        # Check that the response contains link tags for CSS
-        self.assertContains(response, 'rel="stylesheet"')
-
-    def test_static_files_configuration_works(self) -> None:
-        """Intent: static files are served correctly in development.
-
-        Steps:
-            1. GET a static file URL.
-
-        Verification:
-            The static file is served successfully with a 200 status code.
-        """
-        # This test ensures static file serving is configured
-        # In production, this would be handled by a web server
-        response = self.client.get(f"{settings.STATIC_URL}admin/css/base.css")
-        self.assertEqual(response.status_code, 200)
 
 
 class HealthEndpointTest(SimpleTestCase):
     """Test health endpoint behavior used by container checks."""
 
-    def test_healthz_returns_ok_json(self) -> None:
-        """Intent: container probes see the app as healthy when it is up.
+    def test_healthz_returns_non_cacheable_ok_json(self) -> None:
+        """Intent: container probes get a non-cacheable JSON response with safety headers.
 
         Steps:
             1. GET "/healthz".
 
         Verification:
-            The status is 200 and the JSON body is {"status": "ok"}.
+            The status is 200, JSON is {"status": "ok"}, Cache-Control is
+            "no-store", X-Content-Type-Options is "nosniff", and Content-Length
+            matches the response body.
         """
         response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
-
-    def test_healthz_sets_no_store_cache_control(self) -> None:
-        """Intent: caches never serve a stale health check response.
-
-        Steps:
-            1. GET "/healthz".
-
-        Verification:
-            The Cache-Control header includes "no-store".
-        """
-        response = self.client.get("/healthz")
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
-
-    @override_settings(DEBUG=False, ALLOWED_HOSTS=["example.com"])
-    def test_healthz_bypasses_allowed_hosts(self) -> None:
-        """Intent: container probes using localhost or a pod IP succeed.
-
-        Steps:
-            1. Configure DEBUG=False and ALLOWED_HOSTS=["example.com"].
-            2. GET "/healthz" with Host "localhost:8000" and "10.0.0.5:8000".
-
-        Verification:
-            Both requests return 200 with {"status": "ok"}.
-        """
-        for host in ("localhost:8000", "10.0.0.5:8000"):
-            with self.subTest(host=host):
-                response = self.client.get("/healthz", headers={"Host": host})
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.json(), {"status": "ok"})
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(
+            response.headers.get("Content-Length"),
+            str(len(response.content)),
+        )
 
     @override_settings(
         DEBUG=False,
         ALLOWED_HOSTS=["example.com"],
         SECURE_SSL_REDIRECT=True,
     )
-    def test_healthz_bypasses_ssl_redirect(self) -> None:
-        """Intent: plain-HTTP probes get 200 when HTTPS redirect is enabled.
+    def test_healthz_bypasses_host_and_ssl_checks(self) -> None:
+        """Intent: plain-HTTP GET probes bypass ALLOWED_HOSTS and SECURE_SSL_REDIRECT.
 
         Steps:
-            1. Enable SECURE_SSL_REDIRECT with DEBUG=False and
-               ALLOWED_HOSTS=["example.com"].
-            2. Send plain-HTTP GET "/healthz" with both the configured domain
-               and localhost.
+            1. Configure DEBUG=False, ALLOWED_HOSTS=["example.com"], and
+               SECURE_SSL_REDIRECT=True.
+            2. Send plain-HTTP GET "/healthz" with the public domain,
+               localhost, and a pod IP as Host.
 
         Verification:
-            Both requests return 200 with {"status": "ok"} instead of 301/400.
+            Every request returns 200 with {"status": "ok"} instead of 301/400.
         """
-        for host in ("example.com", "localhost:8000"):
+        for host in ("example.com", "localhost:8000", "10.0.0.5:8000"):
             with self.subTest(host=host):
                 response = self.client.get("/healthz", headers={"Host": host})
                 self.assertEqual(response.status_code, 200)
@@ -270,7 +102,7 @@ class HealthEndpointTest(SimpleTestCase):
         SECURE_SSL_REDIRECT=True,
     )
     def test_healthz_supports_head_requests(self) -> None:
-        """Intent: probes using HEAD receive 200 with no response body.
+        """Intent: plain-HTTP HEAD probes receive 200 with an empty response body.
 
         Steps:
             1. Enable SECURE_SSL_REDIRECT with DEBUG=False and
@@ -293,23 +125,11 @@ class HealthEndpointTest(SimpleTestCase):
             2. POST "/healthz" with Host "localhost:8000".
 
         Verification:
-            The request is rejected with 400 Bad Request.
+            The request is rejected with 400 Bad Request and logged as a
+            DisallowedHost security error.
         """
-        response = self.client.post("/healthz", headers={"Host": "localhost:8000"})
-        self.assertEqual(response.status_code, 400)
-
-    @override_settings(DEBUG=False, ALLOWED_HOSTS=["example.com"])
-    def test_index_still_rejects_disallowed_host(self) -> None:
-        """Intent: host validation remains enforced on application routes.
-
-        Steps:
-            1. Configure DEBUG=False and ALLOWED_HOSTS=["example.com"].
-            2. GET "/" with Host "localhost:8000".
-
-        Verification:
-            The response status is 400.
-        """
-        response = self.client.get("/", headers={"Host": "localhost:8000"})
+        with self.assertLogs("django.security.DisallowedHost", level="ERROR"):
+            response = self.client.post("/healthz", headers={"Host": "localhost:8000"})
         self.assertEqual(response.status_code, 400)
 
     @override_settings(

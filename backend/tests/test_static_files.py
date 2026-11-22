@@ -1,9 +1,10 @@
-"""Test suite for how built static files are served in production."""
+"""Test suite for static file discovery, caching, and compression."""
 
 import json
 import tempfile
 
 from django.conf import settings
+from django.contrib.staticfiles import finders
 from django.core.management import call_command
 from django.test import SimpleTestCase, override_settings
 
@@ -22,7 +23,7 @@ def _built_entry_url() -> str:
 
 
 class BuiltAssetServingTest(SimpleTestCase):
-    """Test the caching and compression of collected static files."""
+    """Test the serving, caching, and compression of collected static files."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -37,29 +38,34 @@ class BuiltAssetServingTest(SimpleTestCase):
         call_command("collectstatic", interactive=False, verbosity=0)
 
     def test_vite_assets_are_cached_forever(self) -> None:
-        """Intent: content-hashed Vite output is cached by browsers for good.
+        """Intent: content-hashed Vite output is served and cached as immutable.
 
         Steps:
             1. Look up the built entry script in the Vite manifest.
             2. GET it.
 
         Verification:
-            Cache-Control marks the response immutable.
+            The response is 200 and Cache-Control marks it immutable.
         """
         response = self.client.get(_built_entry_url())
+        self.assertEqual(response.status_code, 200)
         self.assertIn("immutable", response.headers["Cache-Control"])
 
     def test_unhashed_files_are_not_immutable(self) -> None:
-        """Intent: files without a content hash can still change on deploy.
+        """Intent: unhashed static files are served without immutable caching.
 
         Steps:
-            1. GET a Django admin stylesheet, whose name carries no hash.
+            1. GET Django admin CSS and the app favicon, neither of which
+               carries a content hash in its filename.
 
         Verification:
-            Cache-Control does not mark the response immutable.
+            Both return 200 and Cache-Control does not mark them immutable.
         """
-        response = self.client.get(f"{settings.STATIC_URL}admin/css/base.css")
-        self.assertNotIn("immutable", response.headers["Cache-Control"])
+        for path in ("admin/css/base.css", "favicon.ico"):
+            with self.subTest(path=path):
+                response = self.client.get(f"{settings.STATIC_URL}{path}")
+                self.assertEqual(response.status_code, 200)
+                self.assertNotIn("immutable", response.headers["Cache-Control"])
 
     def test_vite_assets_are_served_compressed(self) -> None:
         """Intent: clients that accept gzip get the smaller encoding.
@@ -68,9 +74,25 @@ class BuiltAssetServingTest(SimpleTestCase):
             1. GET the built entry script with Accept-Encoding: gzip.
 
         Verification:
-            The response is gzip-encoded.
+            The response is 200 and gzip-encoded.
         """
         response = self.client.get(
             _built_entry_url(), headers={"Accept-Encoding": "gzip"}
         )
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Encoding"), "gzip")
+
+
+class StaticSourcesTest(SimpleTestCase):
+    """Test what the staticfiles finders can see."""
+
+    def test_frontend_source_is_not_published(self) -> None:
+        """Intent: Vue source files are build input, not public static files.
+
+        Steps:
+            1. Ask the staticfiles finders for the App.vue source file.
+
+        Verification:
+            No finder returns it, so collectstatic never publishes it.
+        """
+        self.assertIsNone(finders.find("js/App.vue"))
