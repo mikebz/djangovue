@@ -1,5 +1,8 @@
 """Test suite for backend views and health check middleware."""
 
+import re
+
+from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 
 
@@ -22,12 +25,16 @@ class IndexViewTest(SimpleTestCase):
         self.assertContains(response, '<div id="app">')
         self.assertContains(response, "Vue.js App")
         html = response.content.decode()
+        static_url = re.escape(settings.STATIC_URL)
         # Require actual asset tags rather than bare ".js"/".css" substrings:
         # the "Vue.js App" title itself contains ".js".
-        self.assertRegex(html, r'<script type="module"[^>]*\ssrc="/static/[^"]+\.js"')
         self.assertRegex(
             html,
-            r'<link(?=[^>]*\srel="stylesheet")[^>]*\shref="/static/[^"]+\.css"',
+            rf'<script type="module"[^>]*\ssrc="{static_url}[^"]+\.js"',
+        )
+        self.assertRegex(
+            html,
+            rf'<link(?=[^>]*\srel="stylesheet")[^>]*\shref="{static_url}[^"]+\.css"',
         )
 
     def test_index_includes_document_metadata(self) -> None:
@@ -46,7 +53,10 @@ class IndexViewTest(SimpleTestCase):
             response,
             '<meta name="viewport" content="width=device-width, initial-scale=1">',
         )
-        self.assertContains(response, '<link rel="icon" href="/static/favicon.ico">')
+        self.assertContains(
+            response,
+            f'<link rel="icon" href="{settings.STATIC_URL}favicon.ico">',
+        )
 
 
 class HealthEndpointTest(SimpleTestCase):
