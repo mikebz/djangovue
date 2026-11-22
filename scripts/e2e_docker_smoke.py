@@ -17,11 +17,16 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from http.client import HTTPMessage
+from typing import IO
 
 IMAGE: str = "djangovue:latest"
 CONTAINER_NAME: str = "djangovue-smoke"
 HOST_PORT: int = 8099
+# Distinct from 127.0.0.1/localhost so the smoke test proves /healthz accepts
+# loopback probes even when ALLOWED_HOSTS restricts traffic to a public domain.
+SMOKE_HOST: str = "app.example.com"
 STARTUP_TIMEOUT_SECONDS: float = 60.0
 ASSET_REFERENCE: re.Pattern[str] = re.compile(
     r'<(?:script[^>]*\ssrc|link[^>]*\shref)="(/static/[^"]+)"'
@@ -33,15 +38,54 @@ STYLESHEET_BUNDLE: re.Pattern[str] = re.compile(
     r'<link(?=[^>]*\srel="stylesheet")[^>]*\shref="/static/[^"]+\.css"'
 )
 
-# Loopback requests must not go through an HTTP(S) proxy set in the environment.
-_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Return 3xx responses as HTTPError instead of following redirects."""
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: IO[bytes],
+        code: int,
+        msg: str,
+        headers: HTTPMessage,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        """Decline every redirect so callers observe the raw 3xx status.
+
+        Args:
+            req: Original request.
+            fp: Response stream (unused).
+            code: HTTP redirect status code (unused).
+            msg: HTTP reason phrase (unused).
+            headers: Response headers (unused).
+            newurl: Redirect target URL (unused).
+
+        Returns:
+            None, causing `HTTPRedirectHandler` to raise `HTTPError`.
+
+        """
+        return None
 
 
-def fetch(url: str) -> tuple[int, str]:
+# Loopback requests must not go through an HTTP(S) proxy set in the environment,
+# and redirects must not be followed silently (a 301 on /healthz is a failure).
+_OPENER = urllib.request.build_opener(
+    urllib.request.ProxyHandler({}),
+    _NoRedirectHandler(),
+)
+
+
+def fetch(
+    url: str,
+    *,
+    headers: Mapping[str, str] | None = None,
+) -> tuple[int, str]:
     """Return the status code and body of a GET request.
 
     Args:
         url: The URL to request.
+        headers: Optional HTTP headers to include on the request.
 
     Returns:
         The status code and the body decoded as UTF-8.
@@ -50,8 +94,9 @@ def fetch(url: str) -> tuple[int, str]:
         urllib.error.URLError: If no connection could be made.
 
     """
+    request = urllib.request.Request(url, headers=dict(headers or {}))
     try:
-        with _OPENER.open(url, timeout=5) as response:
+        with _OPENER.open(request, timeout=5) as response:
             status: int = response.status
             return status, response.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
@@ -85,17 +130,24 @@ def wait_until_healthy(base_url: str, is_alive: Callable[[], bool]) -> bool:
     return False
 
 
-def check_site(base_url: str) -> list[str]:
+def check_site(
+    base_url: str,
+    *,
+    headers: Mapping[str, str] | None = None,
+) -> list[str]:
     """Check the page and the static assets it references.
 
     Args:
         base_url: The server's base URL, without a trailing slash.
+        headers: Optional HTTP headers sent with each request (for example,
+            `Host` and `X-Forwarded-Proto` when testing a TLS-terminated
+            production container).
 
     Returns:
         A description of each problem found; empty when the site is healthy.
 
     """
-    status, page = fetch(f"{base_url}/")
+    status, page = fetch(f"{base_url}/", headers=headers)
     if status != 200:
         return [f"/ -> {status}"]
     problems = [] if '<div id="app">' in page else ['/ has no <div id="app">']
@@ -106,9 +158,29 @@ def check_site(base_url: str) -> list[str]:
 
     assets = ASSET_REFERENCE.findall(page)
     for path in assets:
-        asset_status = fetch(urllib.parse.urljoin(base_url, path))[0]
+        asset_status = fetch(urllib.parse.urljoin(base_url, path), headers=headers)[0]
         if asset_status != 200:
             problems.append(f"{path} -> {asset_status}")
+    return problems
+
+
+def check_production_guards(base_url: str) -> list[str]:
+    """Verify ALLOWED_HOSTS and SECURE_SSL_REDIRECT still guard non-health routes.
+
+    Args:
+        base_url: The server's base URL, without a trailing slash.
+
+    Returns:
+        A description of each guard that failed to fire; empty when enforced.
+
+    """
+    problems: list[str] = []
+    bad_host_status = fetch(f"{base_url}/")[0]
+    if bad_host_status != 400:
+        problems.append(f"/ with disallowed Host -> {bad_host_status} (expected 400)")
+    http_status = fetch(f"{base_url}/", headers={"Host": SMOKE_HOST})[0]
+    if http_status != 301:
+        problems.append(f"plain-HTTP / -> {http_status} (expected 301)")
     return problems
 
 
@@ -128,7 +200,7 @@ def container_running() -> bool:
 
 
 def run_container() -> str:
-    """Start the image in the background with minimal production settings.
+    """Start the image in the background with TLS-terminated production settings.
 
     Returns:
         The base URL the container answers on.
@@ -145,7 +217,11 @@ def run_container() -> str:
             "--env",
             "SECRET_KEY=smoke-test-only-not-a-secret",
             "--env",
-            "ALLOWED_HOSTS=127.0.0.1,localhost",
+            f"ALLOWED_HOSTS={SMOKE_HOST}",
+            "--env",
+            "SECURE_SSL_REDIRECT=1",
+            "--env",
+            "USE_X_FORWARDED_PROTO=1",
             "--publish",
             f"127.0.0.1:{HOST_PORT}:8000",
             IMAGE,
@@ -169,11 +245,16 @@ def main() -> int:
 
     base_url: str = args.url.rstrip("/") if args.url else run_container()
     is_alive: Callable[[], bool] = (lambda: True) if args.url else container_running
+    site_headers: dict[str, str] | None = (
+        None if args.url else {"Host": SMOKE_HOST, "X-Forwarded-Proto": "https"}
+    )
     try:
         if not wait_until_healthy(base_url, is_alive):
             print(f"{base_url}/healthz never answered 200")
             return 1
-        problems = check_site(base_url)
+        problems = check_site(base_url, headers=site_headers)
+        if not args.url:
+            problems.extend(check_production_guards(base_url))
         if problems:
             print("Smoke test failed:")
             print("- " + "\n- ".join(problems))

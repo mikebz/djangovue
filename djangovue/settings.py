@@ -74,6 +74,11 @@ INSTALLED_APPS: list[str] = [
 ]
 
 MIDDLEWARE: list[str] = [
+    # Placed first so plain-HTTP health probes using localhost or a pod IP do
+    # not hit SecurityMiddleware's HTTPS redirect or CommonMiddleware's
+    # ALLOWED_HOSTS check.
+    # https://adamj.eu/tech/2020/04/07/how-to-add-a-health-check-to-your-django-site/
+    "backend.middleware.HealthCheckMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     # Django 6.0 ships Content-Security-Policy support; the middleware reads

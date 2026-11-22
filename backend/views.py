@@ -24,7 +24,7 @@ def healthz(_request: HttpRequest) -> JsonResponse:
         _request: The incoming HTTP request (unused).
 
     Returns:
-        A JSON response indicating the service is healthy.
+        A non-cacheable JSON response indicating the service is healthy.
 
     Examples:
         >>> from django.http import HttpRequest
@@ -35,6 +35,12 @@ def healthz(_request: HttpRequest) -> JsonResponse:
         200
         >>> json.loads(res.content)
         {'status': 'ok'}
+        >>> res.headers["Cache-Control"]
+        'no-store'
 
     """
-    return JsonResponse({"status": "ok"})
+    response = JsonResponse({"status": "ok"})
+    response["Cache-Control"] = "no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Content-Length"] = str(len(response.content))
+    return response

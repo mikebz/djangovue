@@ -14,7 +14,7 @@ the rules about how to make a change here, see `AGENTS.md`.
 | Path | Contains |
 | --- | --- |
 | `djangovue/` | Project configuration: settings, URL root, WSGI/ASGI entry points, shared helpers |
-| `backend/` | The Django app: views, URLs, templates, tests |
+| `backend/` | The Django app: views, URLs, middleware, templates, tests |
 | `frontend/` | Vue source (`js/`), shared styles (`css/`) and image assets, built by Vite into `frontend/dist/` |
 | `scripts/` | End-to-end checks invoked by `make e2e` |
 
@@ -32,7 +32,12 @@ still works.
 - `/` renders `backend/templates/index.html`, the shell that mounts the Vue
   application.
 - `/healthz` returns a small JSON body for container readiness and liveness
-  probes. The production image depends on it.
+  probes. The production image depends on it. `backend/middleware.py`
+  (`HealthCheckMiddleware`, placed first in `MIDDLEWARE`) serves `GET` and
+  `HEAD` probes before `SecurityMiddleware` and `CommonMiddleware` run, so
+  plain-HTTP probes using `localhost` or a container IP still return `200`
+  when `SECURE_SSL_REDIRECT` is enabled and `ALLOWED_HOSTS` lists only the
+  public domain.
 
 ## Configuration
 

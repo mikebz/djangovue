@@ -211,3 +211,123 @@ class HealthEndpointTest(SimpleTestCase):
         response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+    def test_healthz_sets_no_store_cache_control(self) -> None:
+        """Intent: caches never serve a stale health check response.
+
+        Steps:
+            1. GET "/healthz".
+
+        Verification:
+            The Cache-Control header includes "no-store".
+        """
+        response = self.client.get("/healthz")
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+
+    @override_settings(DEBUG=False, ALLOWED_HOSTS=["example.com"])
+    def test_healthz_bypasses_allowed_hosts(self) -> None:
+        """Intent: container probes using localhost or a pod IP succeed.
+
+        Steps:
+            1. Configure DEBUG=False and ALLOWED_HOSTS=["example.com"].
+            2. GET "/healthz" with Host "localhost:8000" and "10.0.0.5:8000".
+
+        Verification:
+            Both requests return 200 with {"status": "ok"}.
+        """
+        for host in ("localhost:8000", "10.0.0.5:8000"):
+            with self.subTest(host=host):
+                response = self.client.get("/healthz", headers={"Host": host})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json(), {"status": "ok"})
+
+    @override_settings(
+        DEBUG=False,
+        ALLOWED_HOSTS=["example.com"],
+        SECURE_SSL_REDIRECT=True,
+    )
+    def test_healthz_bypasses_ssl_redirect(self) -> None:
+        """Intent: plain-HTTP probes get 200 when HTTPS redirect is enabled.
+
+        Steps:
+            1. Enable SECURE_SSL_REDIRECT with DEBUG=False and
+               ALLOWED_HOSTS=["example.com"].
+            2. Send plain-HTTP GET "/healthz" with both the configured domain
+               and localhost.
+
+        Verification:
+            Both requests return 200 with {"status": "ok"} instead of 301/400.
+        """
+        for host in ("example.com", "localhost:8000"):
+            with self.subTest(host=host):
+                response = self.client.get("/healthz", headers={"Host": host})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json(), {"status": "ok"})
+
+    @override_settings(
+        DEBUG=False,
+        ALLOWED_HOSTS=["example.com"],
+        SECURE_SSL_REDIRECT=True,
+    )
+    def test_healthz_supports_head_requests(self) -> None:
+        """Intent: probes using HEAD receive 200 with no response body.
+
+        Steps:
+            1. Enable SECURE_SSL_REDIRECT with DEBUG=False and
+               ALLOWED_HOSTS=["example.com"].
+            2. Send plain-HTTP HEAD "/healthz" with Host "localhost:8000".
+
+        Verification:
+            The status is 200 and the response body is empty.
+        """
+        response = self.client.head("/healthz", headers={"Host": "localhost:8000"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"")
+
+    @override_settings(DEBUG=False, ALLOWED_HOSTS=["example.com"])
+    def test_healthz_post_does_not_bypass_host_check(self) -> None:
+        """Intent: only GET and HEAD probes bypass host validation on /healthz.
+
+        Steps:
+            1. Configure DEBUG=False and ALLOWED_HOSTS=["example.com"].
+            2. POST "/healthz" with Host "localhost:8000".
+
+        Verification:
+            The request is rejected with 400 Bad Request.
+        """
+        response = self.client.post("/healthz", headers={"Host": "localhost:8000"})
+        self.assertEqual(response.status_code, 400)
+
+    @override_settings(DEBUG=False, ALLOWED_HOSTS=["example.com"])
+    def test_index_still_rejects_disallowed_host(self) -> None:
+        """Intent: host validation remains enforced on application routes.
+
+        Steps:
+            1. Configure DEBUG=False and ALLOWED_HOSTS=["example.com"].
+            2. GET "/" with Host "localhost:8000".
+
+        Verification:
+            The response status is 400.
+        """
+        response = self.client.get("/", headers={"Host": "localhost:8000"})
+        self.assertEqual(response.status_code, 400)
+
+    @override_settings(
+        DEBUG=False,
+        ALLOWED_HOSTS=["example.com"],
+        SECURE_SSL_REDIRECT=True,
+    )
+    def test_index_still_redirects_to_https(self) -> None:
+        """Intent: HTTPS redirect remains enforced on application routes.
+
+        Steps:
+            1. Enable SECURE_SSL_REDIRECT with DEBUG=False and
+               ALLOWED_HOSTS=["example.com"].
+            2. Send plain-HTTP GET "/" with Host "example.com".
+
+        Verification:
+            The response is a 301 redirect to https://example.com/.
+        """
+        response = self.client.get("/", headers={"Host": "example.com"})
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "https://example.com/")
