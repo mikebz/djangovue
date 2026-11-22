@@ -91,8 +91,34 @@ def format_url_host(host: str) -> str:
     return stripped
 
 
+def connect_host_for(host: str) -> str:
+    """Return the unbracketed host address to connect to for a bind host.
+
+    Wildcard bind addresses (`0.0.0.0` and `::`) listen on loopback, so port
+    probes and HTTP requests target `127.0.0.1` or `::1` instead of the
+    wildcard literal.
+
+    Args:
+        host: Hostname, IPv4 address, or IPv6 literal (bare or bracketed).
+
+    Returns:
+        Unbracketed host suitable for `socket.create_connection` or
+        `format_url_host`.
+
+    """
+    connect_host = host.strip("[]")
+    if connect_host == "0.0.0.0":
+        return "127.0.0.1"
+    if connect_host == "::":
+        return "::1"
+    return connect_host
+
+
 def build_server_url(host: str, port: int) -> str:
     """Build the root HTTP URL for the smoke-tested server.
+
+    Maps wildcard bind hosts (`0.0.0.0` and `::`) to their loopback equivalents
+    so the probe URL is connectable and matches default `ALLOWED_HOSTS`.
 
     Args:
         host: Hostname, IPv4 address, or IPv6 literal.
@@ -102,7 +128,7 @@ def build_server_url(host: str, port: int) -> str:
         The root URL string ending with `/`.
 
     """
-    return f"http://{format_url_host(host)}:{port}/"
+    return f"http://{format_url_host(connect_host_for(host))}:{port}/"
 
 
 def parse_host(value: str) -> str:
@@ -194,11 +220,7 @@ def is_port_in_use(
         True if a TCP connection succeeds, False otherwise.
 
     """
-    connect_host = host.strip("[]")
-    if connect_host == "0.0.0.0":
-        connect_host = "127.0.0.1"
-    elif connect_host == "::":
-        connect_host = "::1"
+    connect_host = connect_host_for(host)
     try:
         with socket.create_connection((connect_host, port), timeout=timeout):
             return True

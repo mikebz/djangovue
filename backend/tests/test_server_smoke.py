@@ -69,6 +69,28 @@ class UrlHostFormattingTest(SimpleTestCase):
             "http://[::1]:8098/",
         )
 
+    def test_build_server_url_maps_wildcard_hosts(self) -> None:
+        """Intent: wildcard bind hosts map to loopback addresses for HTTP URLs.
+
+        Steps:
+            1. Build URLs for "0.0.0.0", "::", and "[::]" on port 8098.
+
+        Verification:
+            IPv4 wildcard maps to 127.0.0.1 and IPv6 wildcards map to [::1].
+        """
+        self.assertEqual(
+            e2e_server_smoke.build_server_url("0.0.0.0", 8098),
+            "http://127.0.0.1:8098/",
+        )
+        self.assertEqual(
+            e2e_server_smoke.build_server_url("::", 8098),
+            "http://[::1]:8098/",
+        )
+        self.assertEqual(
+            e2e_server_smoke.build_server_url("[::]", 8098),
+            "http://[::1]:8098/",
+        )
+
 
 class PortParsingTest(SimpleTestCase):
     """Test CLI port validation for the smoke script."""
