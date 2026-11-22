@@ -75,8 +75,12 @@ RUN SECRET_KEY=${BUILD_DUMMY_KEY} DEBUG=1 ALLOWED_HOSTS=localhost \
 # Create non-root runtime user. Leave /app, .venv, staticfiles, and
 # frontend/dist owned by root (world-readable, non-writable by appuser) so
 # chown -R does not duplicate those trees into a new layer and the runtime
-# process cannot modify its own code or dependencies.
-RUN adduser --disabled-password --gecos '' appuser
+# process cannot modify its own code or dependencies. Provision a separate
+# /data directory owned by appuser so named volumes mounted for SQLite
+# (DATABASE_URL=sqlite:////data/db.sqlite3) initialize writable.
+RUN adduser --disabled-password --gecos '' appuser \
+    && mkdir -p /data \
+    && chown appuser:appuser /data
 USER appuser
 
 # Expose port
