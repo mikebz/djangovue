@@ -78,27 +78,36 @@ class CspPolicyTest(SimpleTestCase):
         Verification:
             script-src, style-src, and connect-src admit the Vite HTTP/WS
             origins (including bracketed IPv6 authorities) and inline component
-            styles, while framing and objects remain denied.
+            styles, while every other directive matches the built policy.
         """
+        built_policy = security.build_csp_policy(
+            dev_mode=False,
+            dev_server_host="1.2.3.4",
+            dev_server_port=5173,
+        )
         policy = security.build_csp_policy(
             dev_mode=True,
             dev_server_host="1.2.3.4",
             dev_server_port=5173,
         )
         self.assertEqual(
-            policy["script-src"],
-            [CSP.SELF, CSP.NONCE, "http://1.2.3.4:5173"],
+            policy,
+            {
+                **built_policy,
+                "script-src": [CSP.SELF, CSP.NONCE, "http://1.2.3.4:5173"],
+                "style-src": [
+                    CSP.SELF,
+                    CSP.NONCE,
+                    "http://1.2.3.4:5173",
+                    CSP.UNSAFE_INLINE,
+                ],
+                "connect-src": [
+                    CSP.SELF,
+                    "http://1.2.3.4:5173",
+                    "ws://1.2.3.4:5173",
+                ],
+            },
         )
-        self.assertEqual(
-            policy["style-src"],
-            [CSP.SELF, CSP.NONCE, "http://1.2.3.4:5173", CSP.UNSAFE_INLINE],
-        )
-        self.assertEqual(
-            policy["connect-src"],
-            [CSP.SELF, "http://1.2.3.4:5173", "ws://1.2.3.4:5173"],
-        )
-        self.assertEqual(policy["frame-ancestors"], [CSP.NONE])
-        self.assertEqual(policy["object-src"], [CSP.NONE])
 
         ipv6_policy = security.build_csp_policy(
             dev_mode=True,
