@@ -55,13 +55,16 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["djangovue", "backend"]
+known-first-party = ["djangovue", "backend", "scripts"]
 
 [tool.mypy]
 python_version = "3.12"
 # `strict` turns on disallow_untyped_defs plus the rest of the strict family
 # (untyped calls, untyped decorators, implicit Optional, Any returns).
 strict = true
+# Keeps `scripts/*.py` mapped as `scripts.<name>` so tests importing from
+# `scripts` do not collide with the file paths listed below.
+explicit_package_bases = true
 ignore_missing_imports = true
 exclude = ["backend/migrations/"]
 files = [
@@ -69,6 +72,7 @@ files = [
     "djangovue",
     "manage.py",
     "scripts/e2e_docker_smoke.py",
+    "scripts/e2e_server_smoke.py",
     "scripts/e2e_template_check.py",
     "scripts/e2e_vite_dev_check.py",
 ]
