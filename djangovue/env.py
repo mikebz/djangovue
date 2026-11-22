@@ -135,7 +135,7 @@ def get_env_list(
 
     Args:
         name: The name of the environment variable.
-        default: The default sequence to use if the variable is missing.
+        default: The default sequence to use if the variable is missing or blank.
         environ: Optional mapping to use instead of `os.environ`.
 
     Returns:
@@ -148,10 +148,12 @@ def get_env_list(
         []
         >>> get_env_list("MISSING", default=["local"], environ={})
         ['local']
+        >>> get_env_list("HOSTS", default=["local"], environ={"HOSTS": ""})
+        ['local']
 
     """
     raw_value = _get_env_value(name, environ)
-    if raw_value is None:
+    if raw_value is None or not raw_value.strip():
         return [] if default is None else list(default)
     return [s for s in map(str.strip, raw_value.split(",")) if s]
 
@@ -197,7 +199,7 @@ def get_env_int(
 
     Args:
         name: The name of the environment variable.
-        default: The default value to return if the variable is missing.
+        default: The default value to return if the variable is missing or blank.
         environ: Optional mapping to use instead of `os.environ`.
 
     Returns:
@@ -211,13 +213,15 @@ def get_env_int(
         8080
         >>> get_env_int("PORT", default=8000, environ={})
         8000
+        >>> get_env_int("PORT", default=8000, environ={"PORT": ""})
+        8000
 
     """
     raw_value = _get_env_value(name, environ)
-    if raw_value is None:
+    if raw_value is None or not raw_value.strip():
         return default
     try:
-        return int(raw_value)
+        return int(raw_value.strip())
     except ValueError as exc:
         raise ImproperlyConfigured(
             f"{name} must be an integer, got {raw_value!r}"
