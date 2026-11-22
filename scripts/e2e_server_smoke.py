@@ -327,8 +327,7 @@ def stop_process_group(
         try:
             os.killpg(process.pid, sig)
         except ProcessLookupError:
-            process.wait(timeout=timeout)
-            return
+            pass
         try:
             process.wait(timeout=timeout)
             return

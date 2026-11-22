@@ -565,6 +565,35 @@ class StopProcessGroupTest(SimpleTestCase):
             e2e_server_smoke.stop_process_group(process, timeout=1.0)
         process.wait.assert_called_once_with(timeout=1.0)
 
+    def test_handles_timeout_after_process_lookup_error(self) -> None:
+        """Intent: wait timeout after ProcessLookupError never escapes finally.
+
+        Steps:
+            1. Patch os.killpg to raise ProcessLookupError.
+            2. Configure process.wait to raise TimeoutExpired.
+            3. Call stop_process_group and capture stderr.
+
+        Verification:
+            No TimeoutExpired escapes and stderr logs a diagnostic warning.
+        """
+        process = MagicMock(spec=subprocess.Popen)
+        process.pid = 4321
+        process.poll.return_value = None
+        process.wait.side_effect = subprocess.TimeoutExpired(
+            cmd="runserver",
+            timeout=1.0,
+        )
+        stderr = io.StringIO()
+        with (
+            patch(
+                "scripts.e2e_server_smoke.os.killpg",
+                side_effect=ProcessLookupError,
+            ),
+            redirect_stderr(stderr),
+        ):
+            e2e_server_smoke.stop_process_group(process, timeout=1.0)
+        self.assertIn("4321", stderr.getvalue())
+
     def test_warns_when_process_survives_sigkill(self) -> None:
         """Intent: an unkillable process logs a diagnostic warning on stderr.
 
