@@ -233,7 +233,12 @@ The CI, Security, and CodeQL workflows run on pushes and pull requests to `maste
 - Runs automated pull request reviews on non-draft pull requests from branches
   in this repository (skipping forks and bot PRs) using
   `anthropics/claude-code-action` pointed at Meta's `muse-spark-1.3-contributor`
-  model via the `MUSE_API_KEY` repository secret.
+  model.
+- Requires a `MUSE_API_KEY` secret under repository **Settings → Secrets and
+  variables → Actions** (this is a CI-only secret, not a Django setting in
+  `.env.example`); if the secret is missing, the review job fails.
+- Note: Meta's `contributor` tier allows Meta to use prompts and completions
+  (including pull request diffs) to improve its products.
 
 ### Dependency updates (`.github/dependabot.yml`)
 
