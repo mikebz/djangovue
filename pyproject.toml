@@ -24,7 +24,7 @@ manage = "djangovue.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "ruff>=0.17.5",
+    "ruff>=0.17.6",
     "mypy>=2.4.1",
     # Django ships no inline annotations; these stubs are what make the
     # `disallow_untyped_defs` type check meaningful across Django call sites.
